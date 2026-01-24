@@ -1,0 +1,7 @@
+env = Environment()
+
+simple = env.Program(
+    name="simple-cxx",
+    languages=[Language.CXX],
+    sources=["simple.cxx"],
+)

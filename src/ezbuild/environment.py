@@ -1,0 +1,164 @@
+from dataclasses import dataclass, field
+from shutil import which
+from sys import platform
+from typing import TYPE_CHECKING, Any
+
+from typer import Exit
+
+from ezbuild.log import debug, error
+
+if TYPE_CHECKING:
+    from ezbuild.language import Language
+
+
+@dataclass
+class Program:
+    name: str
+    languages: list[Language]
+    sources: list[str]
+
+
+@dataclass
+class StaticLibrary:
+    name: str
+    languages: list[Language]
+    sources: list[str]
+
+
+@dataclass
+class SharedLibrary:
+    name: str
+    languages: list[Language]
+    sources: list[str]
+
+
+@dataclass
+class Environment:
+    programs: list[Program] = field(default_factory=list)
+    static_libraries: list[StaticLibrary] = field(default_factory=list)
+    shared_libraries: list[SharedLibrary] = field(default_factory=list)
+    _vars: dict[str, object] = field(default_factory=dict)
+
+    def __getitem__(self, key: str) -> Any:
+        return self._vars.get(key)
+
+    def __setitem__(self, key: str, value: object) -> None:
+        self._vars[key] = value
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._vars
+
+    def Program(
+        self, name: str, languages: list[Language], sources: list[str]
+    ) -> Program:
+        program = Program(name=name, languages=languages, sources=sources)
+        self.programs.append(program)
+        return program
+
+    def StaticLibrary(
+        self, name: str, languages: list[Language], sources: list[str]
+    ) -> StaticLibrary:
+        static_library = StaticLibrary(name=name, languages=languages, sources=sources)
+        self.static_libraries.append(static_library)
+        return static_library
+
+    def SharedLibrary(
+        self, name: str, languages: list[Language], sources: list[str]
+    ) -> SharedLibrary:
+        shared_library = SharedLibrary(name=name, languages=languages, sources=sources)
+        self.shared_libraries.append(shared_library)
+        return shared_library
+
+    def ensure_cc(self) -> None:
+        if not self["CC"]:
+            if platform == "linux":
+                debug("CC is not set, using cc")
+
+                cc_path = which("cc")
+                if not cc_path:
+                    error("cc not found")
+                    raise Exit
+
+                self["CC"] = cc_path
+            else:
+                error("Unsupported platform")
+                raise Exit
+        else:
+            debug("CC is set")
+
+    def ensure_ccld(self) -> None:
+        if not self["CCLD"]:
+            debug("CCLD is not set, using CC")
+            self["CCLD"] = self["CC"]
+        else:
+            debug("CCLD is set")
+
+    def ensure_cxx(self) -> None:
+        if not self["CC"]:
+            error("CXX requires CC")
+            raise Exit
+
+        if not self["CXX"]:
+            if platform == "linux":
+                debug("CXX is not set, using c++")
+
+                cxx_path = which("c++")
+                if not cxx_path:
+                    error("c++ not found")
+                    raise Exit
+
+                self["CXX"] = cxx_path
+            else:
+                error("Unsupported platform")
+                raise Exit
+        else:
+            debug("CXX is set")
+
+    def ensure_cxxld(self) -> None:
+        if not self["CCLD"]:
+            error("CXXLD requires CCLD")
+            raise Exit
+
+        if not self["CXXLD"]:
+            debug("CXXLD is not set, using CXX")
+            self["CXXLD"] = self["CXX"]
+        else:
+            debug("CXXLD is set")
+
+    def ensure_ar(self) -> None:
+        if not self["AR"]:
+            if platform == "linux":
+                debug("AR is not set, using ar")
+
+                ar_path = which("ar")
+                if not ar_path:
+                    error("ar not found")
+                    raise Exit
+
+                self["AR"] = ar_path
+            else:
+                error("Unsupported platform")
+                raise Exit
+        else:
+            debug("AR is set")
+
+    def ensure_ranlib(self) -> None:
+        if not self["AR"]:
+            error("AR requires AR")
+            raise Exit
+
+        if not self["RANLIB"]:
+            if platform == "linux":
+                debug("RANLIB is not set, using ranlib")
+
+                ranlib_path = which("ranlib")
+                if not ranlib_path:
+                    error("ranlib not found")
+                    raise Exit
+
+                self["RANLIB"] = ranlib_path
+            else:
+                error("Unsupported platform")
+                raise Exit
+        else:
+            debug("RANLIB is set")

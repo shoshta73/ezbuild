@@ -1,0 +1,50 @@
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: 0.9.26
+
+      - name: Create venv
+        run: |
+          uv venv
+
+      - name: Install dependencies
+        run: |
+          uv pip install -r requirements.txt
+
+      - name: Run tests
+        run: |
+          uv run pytest --cov=ezbuild
+
+      - name: Build examples
+        run: |
+          cd examples
+          for example in *; do
+            cd $example
+            echo "Building $example"
+            uv run ezbuild build
+            cd ..
+          done
+
+      - name: Build ezbuild
+        run: |
+          uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

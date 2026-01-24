@@ -1,0 +1,7 @@
+env = Environment()
+
+simple = env.StaticLibrary(
+    name="simple-static-library-cxx",
+    languages=[Language.CXX],
+    sources=["simple.cxx"],
+)

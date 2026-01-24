@@ -1,0 +1,59 @@
+[project]
+name = "ezbuild"
+version = "0.0.0"
+description = "Simple Build System"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.14"
+license = { file = "LICENSE" }
+authors = [{ name = "Borna Šoštarić" }]
+dependencies = ["typer==0.21.1"]
+
+[project.scripts]
+ezbuild = "ezbuild.__main__:cli"
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "UP",  # pyupgrade
+  "SIM", # flake8-simplify
+  "TCH", # flake8-type-checking
+  "PTH", # flake8-use-pathlib
+  "RUF", # ruff-specific rules
+]
+ignore = [
+  "E501", # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ezbuild"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
+
+[tool.coverage.run]
+source = ["ezbuild"]
+
+[tool.coverage.report]
+exclude_lines = ["if __name__ == .__main__.:", "if TYPE_CHECKING:"]

@@ -1,0 +1,7 @@
+env = Environment()
+
+simple = env.SharedLibrary(
+    name="simple-shared-library-cxx",
+    languages=[Language.CXX],
+    sources=["simple.cxx"],
+)

@@ -1,0 +1,7 @@
+env = Environment()
+
+simple = env.StaticLibrary(
+    name="simple-static-library-c",
+    languages=[Language.C],
+    sources=["simple.c"],
+)

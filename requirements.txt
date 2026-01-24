@@ -1,0 +1,13 @@
+-e .
+
+# Project dependencies
+typer==0.21.1
+
+# Development
+ruff==0.14.14
+pyinstrument==5.1.2  # for profiling
+
+# Testing
+pytest==9.0.2
+pytest-cov==7.0.0
+pytest-mock==3.15.1

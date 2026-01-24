@@ -12,3 +12,11 @@ max_line_length = 120
 
 [*.md]
 trim_trailing_whitespace = false
+
+[*.py]
+indent_size = 4
+tab_width = 4
+
+[*.pyi]
+indent_size = 4
+tab_width = 4
