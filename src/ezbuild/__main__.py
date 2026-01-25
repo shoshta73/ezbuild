@@ -20,11 +20,21 @@ def version_callback(value: bool) -> None:
 
 @cli.command()
 def init(
+    language: Annotated[
+        str | None, typer.Option("--language", "-l", help="Language which is used")
+    ] = None,
     name: Annotated[
         str | None, typer.Argument(help="Name of the project to initialize")
     ] = None,
 ) -> None:
     """Initialize a new project."""
+
+    if language is not None and language not in ["c", "cxx", "c++", "cc", "cpp"]:
+        log.error(f"Unsupported language: {language}")
+        raise typer.Exit(1)
+
+    lang = Language.CXX if language in ["cxx", "c++", "cc", "cpp"] else Language.C
+
     cwd = Path.cwd()
     if name is None:
         name = cwd.name
@@ -41,14 +51,16 @@ def init(
 
 {name} = env.Program(
     name='{name}',
-    sources=['{name}.c'],
+    languages=[Language.{lang.name}],
+    sources=['{name}.{lang.value}'],
 )
 """)
         log.info("Wrote build.ezbuild")
 
-    log.debug(f" Writing {name}.c")
-    with Path.open(cwd / f"{name}.c", "w") as f:
-        f.write("""#include <stdio.h>\n
+    if lang == Language.C:
+        log.debug(f" Writing {name}.c")
+        with Path.open(cwd / f"{name}.c", "w") as f:
+            f.write("""#include <stdio.h>\n
 
 int main() {
     printf("Hello, World!\\n");
@@ -56,6 +68,17 @@ int main() {
 }
 """)
         log.info(f"Wrote {name}.c")
+    elif lang == Language.CXX:
+        log.debug(f" Writing {name}.cxx")
+        with Path.open(cwd / f"{name}.cxx", "w") as f:
+            f.write("""#include <iostream>
+
+int main() {
+    std::cout << "Hello, World!\\n";
+    return 0;
+}
+""")
+        log.info(f"Wrote {name}.cxx")
 
 
 @cli.command()
