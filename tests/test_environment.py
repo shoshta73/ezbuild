@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 import pytest
 from typer import Exit
 
-from ezbuild.environment import Environment, Program
+from ezbuild.environment import Environment, Program, SharedLibrary, StaticLibrary
 from ezbuild.language import Language
 
 if TYPE_CHECKING:
@@ -219,3 +219,222 @@ def test_ensure_cxxld_not_set(mocker: MockerFixture) -> None:
     env.ensure_cxxld()
     mock_debug.assert_called_once_with("CXXLD is not set, using CXX")
     assert env["CXXLD"] == "/usr/bin/g++"
+
+
+def test_static_library_creation() -> None:
+    lib = StaticLibrary(name="mylib", languages=[Language.C], sources=["lib.c"])
+    assert lib.name == "mylib"
+    assert lib.languages == [Language.C]
+    assert lib.sources == ["lib.c"]
+    assert lib.dependencies == []
+
+
+def test_static_library_with_dependencies() -> None:
+    lib = StaticLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+        dependencies=["dep1", "dep2"],
+    )
+    assert lib.dependencies == ["dep1", "dep2"]
+
+
+def test_shared_library_creation() -> None:
+    lib = SharedLibrary(name="mylib", languages=[Language.C], sources=["lib.c"])
+    assert lib.name == "mylib"
+    assert lib.languages == [Language.C]
+    assert lib.sources == ["lib.c"]
+    assert lib.dependencies == []
+
+
+def test_shared_library_with_dependencies() -> None:
+    lib = SharedLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+        dependencies=["dep1", "dep2"],
+    )
+    assert lib.dependencies == ["dep1", "dep2"]
+
+
+def test_program_with_dependencies() -> None:
+    program = Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+        dependencies=["libfoo", "libbar"],
+    )
+    assert program.dependencies == ["libfoo", "libbar"]
+
+
+def test_program_default_dependencies() -> None:
+    program = Program(name="myapp", languages=[Language.C], sources=["main.c"])
+    assert program.dependencies == []
+
+
+def test_environment_static_library_method() -> None:
+    env = Environment()
+    lib = env.StaticLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+    )
+    assert isinstance(lib, StaticLibrary)
+    assert lib.name == "mylib"
+    assert lib in env.static_libraries
+
+
+def test_environment_static_library_with_dependencies() -> None:
+    env = Environment()
+    lib = env.StaticLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+        dependencies=["dep1"],
+    )
+    assert lib.dependencies == ["dep1"]
+
+
+def test_environment_multiple_static_libraries() -> None:
+    env = Environment()
+    lib1 = env.StaticLibrary(name="lib1", languages=[Language.C], sources=["lib1.c"])
+    lib2 = env.StaticLibrary(name="lib2", languages=[Language.C], sources=["lib2.c"])
+    assert len(env.static_libraries) == 2
+    assert env.static_libraries[0] is lib1
+    assert env.static_libraries[1] is lib2
+
+
+def test_environment_shared_library_method() -> None:
+    env = Environment()
+    lib = env.SharedLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+    )
+    assert isinstance(lib, SharedLibrary)
+    assert lib.name == "mylib"
+    assert lib in env.shared_libraries
+
+
+def test_environment_shared_library_with_dependencies() -> None:
+    env = Environment()
+    lib = env.SharedLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+        dependencies=["dep1"],
+    )
+    assert lib.dependencies == ["dep1"]
+
+
+def test_environment_multiple_shared_libraries() -> None:
+    env = Environment()
+    lib1 = env.SharedLibrary(name="lib1", languages=[Language.C], sources=["lib1.c"])
+    lib2 = env.SharedLibrary(name="lib2", languages=[Language.C], sources=["lib2.c"])
+    assert len(env.shared_libraries) == 2
+    assert env.shared_libraries[0] is lib1
+    assert env.shared_libraries[1] is lib2
+
+
+def test_environment_static_libraries_isolation() -> None:
+    env1 = Environment()
+    env2 = Environment()
+    env1.StaticLibrary(name="lib1", languages=[Language.C], sources=["lib1.c"])
+    assert len(env1.static_libraries) == 1
+    assert len(env2.static_libraries) == 0
+
+
+def test_environment_shared_libraries_isolation() -> None:
+    env1 = Environment()
+    env2 = Environment()
+    env1.SharedLibrary(name="lib1", languages=[Language.C], sources=["lib1.c"])
+    assert len(env1.shared_libraries) == 1
+    assert len(env2.shared_libraries) == 0
+
+
+def test_ensure_ar_already_set(mocker: MockerFixture) -> None:
+    mock_debug = mocker.patch("ezbuild.environment.debug")
+    env = Environment()
+    env["AR"] = "/usr/bin/ar"
+    env.ensure_ar()
+    mock_debug.assert_called_once_with("AR is set")
+    assert env["AR"] == "/usr/bin/ar"
+
+
+def test_ensure_ar_linux_found(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "linux")
+    mocker.patch("ezbuild.environment.which", return_value="/usr/bin/ar")
+    mocker.patch("ezbuild.environment.debug")
+    env = Environment()
+    env.ensure_ar()
+    assert env["AR"] == "/usr/bin/ar"
+
+
+def test_ensure_ar_linux_not_found(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "linux")
+    mocker.patch("ezbuild.environment.which", return_value=None)
+    mocker.patch("ezbuild.environment.debug")
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    with pytest.raises(Exit):
+        env.ensure_ar()
+    mock_error.assert_called_once_with("ar not found")
+
+
+def test_ensure_ar_unsupported_platform(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "win32")
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    with pytest.raises(Exit):
+        env.ensure_ar()
+    mock_error.assert_called_once_with("Unsupported platform")
+
+
+def test_ensure_ranlib_requires_ar(mocker: MockerFixture) -> None:
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    with pytest.raises(Exit):
+        env.ensure_ranlib()
+    mock_error.assert_called_once_with("AR requires AR")
+
+
+def test_ensure_ranlib_already_set(mocker: MockerFixture) -> None:
+    mock_debug = mocker.patch("ezbuild.environment.debug")
+    env = Environment()
+    env["AR"] = "/usr/bin/ar"
+    env["RANLIB"] = "/usr/bin/ranlib"
+    env.ensure_ranlib()
+    mock_debug.assert_called_once_with("RANLIB is set")
+    assert env["RANLIB"] == "/usr/bin/ranlib"
+
+
+def test_ensure_ranlib_linux_found(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "linux")
+    mocker.patch("ezbuild.environment.which", return_value="/usr/bin/ranlib")
+    mocker.patch("ezbuild.environment.debug")
+    env = Environment()
+    env["AR"] = "/usr/bin/ar"
+    env.ensure_ranlib()
+    assert env["RANLIB"] == "/usr/bin/ranlib"
+
+
+def test_ensure_ranlib_linux_not_found(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "linux")
+    mocker.patch("ezbuild.environment.which", return_value=None)
+    mocker.patch("ezbuild.environment.debug")
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    env["AR"] = "/usr/bin/ar"
+    with pytest.raises(Exit):
+        env.ensure_ranlib()
+    mock_error.assert_called_once_with("ranlib not found")
+
+
+def test_ensure_ranlib_unsupported_platform(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "win32")
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    env["AR"] = "/usr/bin/ar"
+    with pytest.raises(Exit):
+        env.ensure_ranlib()
+    mock_error.assert_called_once_with("Unsupported platform")
