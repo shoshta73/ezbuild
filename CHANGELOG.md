@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1] - 2026-01-26
+
+### Added
+- Safe execution module for secure build file execution
+- AST validation to prevent dangerous operations in build.ezbuild
+- SafeBuildError exception for build file validation failures
+- safe_execute function to public API
+- Safe execution tests (305 test cases)
+
+### Changed
+- Subprocess calls now use command lists instead of shell=True for improved security
+- Build file execution validates AST before execution
+
 ## [0.2.0] - 2026-01-26
 
 ### Added

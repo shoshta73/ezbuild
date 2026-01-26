@@ -5,7 +5,7 @@ from .language import Language
 from .python_environment import PythonEnvironment
 from .safe_exec import SafeBuildError, safe_execute
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "CompileCommand",
