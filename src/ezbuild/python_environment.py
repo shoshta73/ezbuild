@@ -1,5 +1,8 @@
+from os import environ
+
+
 class PythonEnvironment:
-    _debug: bool = __debug__
+    _debug: bool = environ.get("EZBUILD_DEBUG") == "1"
 
     @classmethod
     def debug(cls) -> bool:

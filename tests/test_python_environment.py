@@ -1,3 +1,4 @@
+from os import environ
 from typing import TYPE_CHECKING
 
 from ezbuild.python_environment import PythonEnvironment
@@ -12,7 +13,7 @@ def test_debug_returns_bool() -> None:
 
 
 def test_debug_default_value() -> None:
-    assert PythonEnvironment._debug == __debug__
+    assert PythonEnvironment._debug == (environ.get("EZBUILD_DEBUG") == "1")
 
 
 def test_debug_returns_class_attribute() -> None:
