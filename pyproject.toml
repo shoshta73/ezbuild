@@ -8,6 +8,10 @@ license = { file = "LICENSE" }
 authors = [{ name = "Borna Šoštarić" }]
 dependencies = ["typer==0.21.1"]
 
+[project.urls]
+homepage = "https://github.com/shoshta73/ezbuild"
+changelog = "https://github.com/shoshta73/ezbuild/blob/main/CHANGELOG.md"
+
 [project.scripts]
 ezbuild = "ezbuild.__main__:cli"
 
