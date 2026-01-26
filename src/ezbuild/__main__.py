@@ -28,25 +28,38 @@ def init(
     ] = None,
 ) -> None:
     """Initialize a new project."""
+    cwd = Path.cwd()
 
-    if language is not None and language not in ["c", "cxx", "c++", "cc", "cpp"]:
+    if language is None:
+        lang: Language = typer.prompt(
+            "Language which is used", type=Language, default=Language.C
+        )
+    elif language not in ["c", "cxx", "c++", "cc", "cpp"]:
         log.error(f"Unsupported language: {language}")
         raise typer.Exit(1)
+    else:
+        lang = Language.CXX if language in ["cxx", "c++", "cc", "cpp"] else Language.C
 
-    lang = Language.CXX if language in ["cxx", "c++", "cc", "cpp"] else Language.C
+    log.info(f'Using "{lang.name}" as the language')
 
-    cwd = Path.cwd()
     if name is None:
-        name = cwd.name
+        name = (
+            typer.prompt(
+                "Name of the project to initialize", type=str, default=cwd.name
+            )
+            if language is None
+            else cwd.name
+        )
 
-    log.info(f'Using "{name}" (name of current directory) as the project name')
-    log.info(f'Using "{name}" as name of the executable to build')
+    log.info(f'Using "{name}" as the project name')
 
     if any(cwd.iterdir()):
         log.error(f'Directory "{name}" is not empty')
+        raise typer.Exit(1)
 
     log.debug("Writing build.ezbuild")
-    with Path.open(cwd / "build.ezbuild", "w") as f:
+
+    with (cwd / "build.ezbuild").open("w") as f:
         f.write(f"""env = Environment()
 
 {name} = env.Program(
@@ -55,12 +68,13 @@ def init(
     sources=['{name}.{lang.value}'],
 )
 """)
-        log.info("Wrote build.ezbuild")
+
+    log.info("Wrote build.ezbuild")
 
     if lang == Language.C:
-        log.debug(f" Writing {name}.c")
-        with Path.open(cwd / f"{name}.c", "w") as f:
-            f.write("""#include <stdio.h>\n
+        log.debug(f"Writing {name}.c")
+        with (cwd / f"{name}.c").open("w") as f:
+            f.write("""#include <stdio.h>
 
 int main() {
     printf("Hello, World!\\n");
@@ -69,8 +83,8 @@ int main() {
 """)
         log.info(f"Wrote {name}.c")
     elif lang == Language.CXX:
-        log.debug(f" Writing {name}.cxx")
-        with Path.open(cwd / f"{name}.cxx", "w") as f:
+        log.debug(f"Writing {name}.cxx")
+        with (cwd / f"{name}.cxx").open("w") as f:
             f.write("""#include <iostream>
 
 int main() {
