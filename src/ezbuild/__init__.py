@@ -4,7 +4,7 @@ from .environment import Environment, Program, SharedLibrary, StaticLibrary
 from .language import Language
 from .python_environment import PythonEnvironment
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 __all__ = [
     "CompileCommand",

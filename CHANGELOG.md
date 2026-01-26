@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.0] - 2026-01-26
+
+### Added
+- Dependency building feature with automatic topological ordering
+- Dependency tree management system with `DepTree` class
+- Program dependency relationships support in build.ezbuild
+- Dependency tree tests (287 test cases)
+- Missing environment tests (220 new test cases)
+- Missing log tests (43 new test cases)
+- Example projects for dependency building:
+  - Simple dependency with static library (C)
+  - Simple dependency with static library (C++)
+  - Simple dependency with shared library (C)
+  - Simple dependency with shared library (C++)
+- Version bump script in utils/version.py
+- Project URLs in pyproject.toml (homepage and changelog)
+
 ## [0.1.1] - 2026-01-26
 
 ### Added
