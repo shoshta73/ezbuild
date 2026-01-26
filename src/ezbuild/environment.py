@@ -12,11 +12,19 @@ if TYPE_CHECKING:
 
 
 @dataclass
+class SystemLibrary:
+    name: str
+    compile_flags: list[str] = field(default_factory=list)
+    link_flags: list[str] = field(default_factory=list)
+
+
+@dataclass
 class Program:
     name: str = field(default_factory=str)
     languages: list[Language] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
+    system_dependencies: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -25,6 +33,7 @@ class StaticLibrary:
     languages: list[Language] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
+    system_dependencies: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -33,6 +42,7 @@ class SharedLibrary:
     languages: list[Language] = field(default_factory=list)
     sources: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
+    system_dependencies: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -57,12 +67,14 @@ class Environment:
         languages: list[Language],
         sources: list[str],
         dependencies: None | list[str] = None,
+        system_dependencies: None | list[str] = None,
     ) -> Program:
         program = Program(
             name=name,
             languages=languages,
             sources=sources,
             dependencies=dependencies or [],
+            system_dependencies=system_dependencies or [],
         )
         self.programs.append(program)
         return program
@@ -73,12 +85,14 @@ class Environment:
         languages: list[Language],
         sources: list[str],
         dependencies: None | list[str] = None,
+        system_dependencies: None | list[str] = None,
     ) -> StaticLibrary:
         static_library = StaticLibrary(
             name=name,
             languages=languages,
             sources=sources,
             dependencies=dependencies or [],
+            system_dependencies=system_dependencies or [],
         )
         self.static_libraries.append(static_library)
         return static_library
@@ -89,12 +103,14 @@ class Environment:
         languages: list[Language],
         sources: list[str],
         dependencies: None | list[str] = None,
+        system_dependencies: None | list[str] = None,
     ) -> SharedLibrary:
         shared_library = SharedLibrary(
             name=name,
             languages=languages,
             sources=sources,
             dependencies=dependencies or [],
+            system_dependencies=system_dependencies or [],
         )
         self.shared_libraries.append(shared_library)
         return shared_library
@@ -192,3 +208,14 @@ class Environment:
                 raise Exit
         else:
             debug("RANLIB is set")
+
+    def ensure_pkg_config(self) -> None:
+        if platform not in ["linux", "darwin"]:
+            error("pkg-config is only supported on Unix systems")
+            raise Exit
+
+        if not which("pkg-config"):
+            error("pkg-config not found")
+            raise Exit
+        else:
+            debug("pkg-config is available")

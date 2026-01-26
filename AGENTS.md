@@ -135,13 +135,14 @@
 
 ### Subprocess Usage
 - Use `subprocess.run()` for command execution
-- Always capture output with `capture_output=True`
-- Use `shell=True` for command strings
+- For build commands (compilation/linking): split command into list, no `shell=True`
+- For running executables: use string path without capture_output
+- Always capture output with `capture_output=True` for build commands
 - Check return codes and log stderr on failure
-- Run commands may not capture output (e.g., when running built executables)
 - Example:
   ```python
-  result = subprocess.run(cmd, shell=True, capture_output=True)
+  cmd_list = build_env["CC"].split()
+  result = subprocess.run(cmd_list, capture_output=True)
   if result.returncode != 0:
       log.error("Command failed")
       log.debug(f"Error: {result.stderr.decode()}")

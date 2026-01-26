@@ -17,8 +17,10 @@ from ezbuild import (
     SafeBuildError,
     SharedLibrary,
     StaticLibrary,
+    SystemLibrary,
     Target,
     log,
+    pkg_config,
     safe_execute,
     utils,
 )
@@ -181,6 +183,13 @@ def build(
 
     build_artifacts: dict[str, Path] = {}
 
+    # Resolve system dependencies
+    system_libs: dict[str, SystemLibrary] = {}
+    for target in build_order:
+        for sys_dep in target.system_dependencies:
+            if sys_dep not in system_libs:
+                system_libs[sys_dep] = pkg_config.query_package(sys_dep)
+
     for target in build_order:
         log.info(f"Building {target.name}")
         if isinstance(target, Program):
@@ -211,9 +220,14 @@ def build(
                 )
 
                 if source_path.suffix == ".c":
+                    compile_flags: list[str] = []
+                    for sys_dep in target.system_dependencies:
+                        compile_flags.extend(system_libs[sys_dep].compile_flags)
+
                     compile_command.command = " ".join(
                         [
                             build_env["CC"],
+                            *compile_flags,
                             "-c",
                             "-o",
                             compile_command.output,
@@ -223,9 +237,14 @@ def build(
                     log.cc(f"{compile_command.file}")
 
                 elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
+                    compile_flags: list[str] = []
+                    for sys_dep in target.system_dependencies:
+                        compile_flags.extend(system_libs[sys_dep].compile_flags)
+
                     compile_command.command = " ".join(
                         [
                             build_env["CXX"],
+                            *compile_flags,
                             "-c",
                             "-o",
                             compile_command.output,
@@ -252,6 +271,11 @@ def build(
                 if dep in build_artifacts:
                     dep_libs.append(str(build_artifacts[dep]))
 
+            # Collect system library link flags
+            link_flags: list[str] = []
+            for sys_dep in target.system_dependencies:
+                link_flags.extend(system_libs[sys_dep].link_flags)
+
             if Language.CXX in target.languages:
                 cmd_list = [
                     build_env["CXXLD"],
@@ -262,6 +286,7 @@ def build(
                         for local_compile_command in local_compile_commands
                     ],
                     *dep_libs,
+                    *link_flags,
                 ]
                 log.cxxld(f"{bin_dir / target.name}")
 
@@ -275,6 +300,7 @@ def build(
                         for local_compile_command in local_compile_commands
                     ],
                     *dep_libs,
+                    *link_flags,
                 ]
                 log.ccld(f"{bin_dir / target.name}")
 
@@ -315,9 +341,14 @@ def build(
                     _temp.parent / ((int_dir / source).name + ".o")
                 )
                 if source_path.suffix == ".c":
+                    compile_flags: list[str] = []
+                    for sys_dep in target.system_dependencies:
+                        compile_flags.extend(system_libs[sys_dep].compile_flags)
+
                     compile_command.command = " ".join(
                         [
                             build_env["CC"],
+                            *compile_flags,
                             "-c",
                             "-o",
                             compile_command.output,
@@ -327,9 +358,14 @@ def build(
                     log.cc(f"{compile_command.file}")
 
                 elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
+                    compile_flags: list[str] = []
+                    for sys_dep in target.system_dependencies:
+                        compile_flags.extend(system_libs[sys_dep].compile_flags)
+
                     compile_command.command = " ".join(
                         [
                             build_env["CXX"],
+                            *compile_flags,
                             "-c",
                             "-o",
                             compile_command.output,
@@ -411,9 +447,14 @@ def build(
                 )
 
                 if source_path.suffix == ".c":
+                    compile_flags: list[str] = []
+                    for sys_dep in target.system_dependencies:
+                        compile_flags.extend(system_libs[sys_dep].compile_flags)
+
                     compile_command.command = " ".join(
                         [
                             build_env["CC"],
+                            *compile_flags,
                             "-fPIC",
                             "-c",
                             "-o",
@@ -423,9 +464,14 @@ def build(
                     )
                     log.cc(f"{compile_command.file}")
                 elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
+                    compile_flags: list[str] = []
+                    for sys_dep in target.system_dependencies:
+                        compile_flags.extend(system_libs[sys_dep].compile_flags)
+
                     compile_command.command = " ".join(
                         [
                             build_env["CXX"],
+                            *compile_flags,
                             "-fPIC",
                             "-c",
                             "-o",
@@ -453,6 +499,11 @@ def build(
                 if dep in build_artifacts:
                     dep_libs.append(str(build_artifacts[dep]))
 
+            # Collect system library link flags
+            link_flags: list[str] = []
+            for sys_dep in target.system_dependencies:
+                link_flags.extend(system_libs[sys_dep].link_flags)
+
             if Language.CXX in target.languages:
                 cmd_list = [
                     build_env["CXXLD"],
@@ -464,6 +515,7 @@ def build(
                         for local_compile_command in local_compile_commands
                     ],
                     *dep_libs,
+                    *link_flags,
                 ]
                 log.cxxld(f"{lib_dir / f'{target.name}.so'}")
             else:
@@ -477,6 +529,7 @@ def build(
                         for local_compile_command in local_compile_commands
                     ],
                     *dep_libs,
+                    *link_flags,
                 ]
                 log.ccld(f"{lib_dir / f'{target.name}.so'}")
 

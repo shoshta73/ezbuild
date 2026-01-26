@@ -1,0 +1,8 @@
+env = Environment()
+
+myapp = env.Program(
+    name="myapp",
+    languages=[Language.CXX],
+    sources=["main.cxx"],
+    system_dependencies=["libcurl"],
+)
