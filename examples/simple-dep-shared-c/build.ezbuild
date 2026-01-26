@@ -1,0 +1,14 @@
+env = Environment()
+
+dep = env.SharedLibrary(
+    name="dep",
+    languages=[Language.C],
+    sources=["dep.c"],
+)
+
+simple = env.Program(
+    name="simple-c",
+    languages=[Language.C],
+    sources=["simple.c"],
+    dependencies=["dep"],
+)
