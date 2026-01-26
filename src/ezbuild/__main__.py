@@ -14,10 +14,12 @@ from ezbuild import (
     Environment,
     Language,
     Program,
+    SafeBuildError,
     SharedLibrary,
     StaticLibrary,
     Target,
     log,
+    safe_execute,
     utils,
 )
 
@@ -134,7 +136,11 @@ def build(
         "Language": Language,
     }
     log.debug("Executing build.ezbuild")
-    exec(build_ezbuild, namespace)
+    try:
+        namespace = safe_execute(build_ezbuild, namespace)
+    except SafeBuildError as e:
+        log.error(f"Build file validation failed: {e}")
+        raise typer.Exit(1) from e
 
     build_env: Environment | None = None
     targets: dict[str, Target] = {}

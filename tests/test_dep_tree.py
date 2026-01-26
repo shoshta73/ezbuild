@@ -258,9 +258,7 @@ def test_deptree_with_shared_library() -> None:
 
 
 def test_deptree_mixed_library_types() -> None:
-    static = StaticLibrary(
-        name="static", languages=[Language.C], sources=["static.c"]
-    )
+    static = StaticLibrary(name="static", languages=[Language.C], sources=["static.c"])
     shared = SharedLibrary(
         name="shared",
         languages=[Language.C],

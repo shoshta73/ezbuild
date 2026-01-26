@@ -1,6 +1,7 @@
 -e .
 
 # Project dependencies
+RestrictedPython==8.1
 typer==0.21.1
 
 # Development

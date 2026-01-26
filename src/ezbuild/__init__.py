@@ -3,6 +3,7 @@ from .dep_tree import CyclicDependencyError, DepTree, MissingDependencyError, Ta
 from .environment import Environment, Program, SharedLibrary, StaticLibrary
 from .language import Language
 from .python_environment import PythonEnvironment
+from .safe_exec import SafeBuildError, safe_execute
 
 __version__ = "0.2.0"
 
@@ -15,7 +16,9 @@ __all__ = [
     "MissingDependencyError",
     "Program",
     "PythonEnvironment",
+    "SafeBuildError",
     "SharedLibrary",
     "StaticLibrary",
     "Target",
+    "safe_execute",
 ]
