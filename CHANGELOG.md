@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] - 2026-01-26
+
+### Added
+- Language flag to the `init` command for specifying project language
+- User prompts when initializing project for better UX
+
+### Fixed
+- Wrong if statement in log.py
+  - Fixed the test cases for related changes
+
 ## [0.1.0] - 2026-01-25
 
 ### Added
