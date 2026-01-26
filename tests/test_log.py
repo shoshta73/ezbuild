@@ -13,8 +13,8 @@ def test_log_level_enum() -> None:
     assert LogLevel.ERROR.name == "ERROR"
 
 
-def test_debug_calls_echo_when_disabled(mocker: MockerFixture) -> None:
-    mocker.patch.object(PythonEnvironment, "_debug", False)
+def test_debug_calls_echo_when_enabled(mocker: MockerFixture) -> None:
+    mocker.patch.object(PythonEnvironment, "_debug", True)
     mock_echo = mocker.patch("ezbuild.log.typer.echo")
     debug("test message")
     mock_echo.assert_called_once()
@@ -23,8 +23,8 @@ def test_debug_calls_echo_when_disabled(mocker: MockerFixture) -> None:
     assert "test message" in call_arg
 
 
-def test_debug_suppressed_when_enabled(mocker: MockerFixture) -> None:
-    mocker.patch.object(PythonEnvironment, "_debug", True)
+def test_debug_suppressed_when_disabled(mocker: MockerFixture) -> None:
+    mocker.patch.object(PythonEnvironment, "_debug", False)
     mock_echo = mocker.patch("ezbuild.log.typer.echo")
     debug("test message")
     mock_echo.assert_not_called()
@@ -48,16 +48,16 @@ def test_error_calls_echo(mocker: MockerFixture) -> None:
     assert "test message" in call_arg
 
 
-def test_debug_output_when_disabled(mocker: MockerFixture, capsys) -> None:
-    mocker.patch.object(PythonEnvironment, "_debug", False)
+def test_debug_output_when_enabled(mocker: MockerFixture, capsys) -> None:
+    mocker.patch.object(PythonEnvironment, "_debug", True)
     debug("test message")
     captured = capsys.readouterr()
     assert "DEBUG" in captured.out
     assert "test message" in captured.out
 
 
-def test_debug_no_output_when_enabled(mocker: MockerFixture, capsys) -> None:
-    mocker.patch.object(PythonEnvironment, "_debug", True)
+def test_debug_no_output_when_disabled(mocker: MockerFixture, capsys) -> None:
+    mocker.patch.object(PythonEnvironment, "_debug", False)
     debug("test message")
     captured = capsys.readouterr()
     assert captured.out == ""
