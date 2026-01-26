@@ -1,5 +1,6 @@
 from .compile_command import CompileCommand
-from .environment import Environment, Program
+from .dep_tree import CyclicDependencyError, DepTree, MissingDependencyError, Target
+from .environment import Environment, Program, SharedLibrary, StaticLibrary
 from .language import Language
 from .python_environment import PythonEnvironment
 
@@ -7,8 +8,14 @@ __version__ = "0.1.1"
 
 __all__ = [
     "CompileCommand",
+    "CyclicDependencyError",
+    "DepTree",
     "Environment",
     "Language",
+    "MissingDependencyError",
     "Program",
     "PythonEnvironment",
+    "SharedLibrary",
+    "StaticLibrary",
+    "Target",
 ]

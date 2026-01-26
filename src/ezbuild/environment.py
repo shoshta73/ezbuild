@@ -13,23 +13,26 @@ if TYPE_CHECKING:
 
 @dataclass
 class Program:
-    name: str
-    languages: list[Language]
-    sources: list[str]
+    name: str = field(default_factory=str)
+    languages: list[Language] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
 
 
 @dataclass
 class StaticLibrary:
-    name: str
-    languages: list[Language]
-    sources: list[str]
+    name: str = field(default_factory=str)
+    languages: list[Language] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
 
 
 @dataclass
 class SharedLibrary:
-    name: str
-    languages: list[Language]
-    sources: list[str]
+    name: str = field(default_factory=str)
+    languages: list[Language] = field(default_factory=list)
+    sources: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -49,23 +52,50 @@ class Environment:
         return key in self._vars
 
     def Program(
-        self, name: str, languages: list[Language], sources: list[str]
+        self,
+        name: str,
+        languages: list[Language],
+        sources: list[str],
+        dependencies: None | list[str] = None,
     ) -> Program:
-        program = Program(name=name, languages=languages, sources=sources)
+        program = Program(
+            name=name,
+            languages=languages,
+            sources=sources,
+            dependencies=dependencies or [],
+        )
         self.programs.append(program)
         return program
 
     def StaticLibrary(
-        self, name: str, languages: list[Language], sources: list[str]
+        self,
+        name: str,
+        languages: list[Language],
+        sources: list[str],
+        dependencies: None | list[str] = None,
     ) -> StaticLibrary:
-        static_library = StaticLibrary(name=name, languages=languages, sources=sources)
+        static_library = StaticLibrary(
+            name=name,
+            languages=languages,
+            sources=sources,
+            dependencies=dependencies or [],
+        )
         self.static_libraries.append(static_library)
         return static_library
 
     def SharedLibrary(
-        self, name: str, languages: list[Language], sources: list[str]
+        self,
+        name: str,
+        languages: list[Language],
+        sources: list[str],
+        dependencies: None | list[str] = None,
     ) -> SharedLibrary:
-        shared_library = SharedLibrary(name=name, languages=languages, sources=sources)
+        shared_library = SharedLibrary(
+            name=name,
+            languages=languages,
+            sources=sources,
+            dependencies=dependencies or [],
+        )
         self.shared_libraries.append(shared_library)
         return shared_library
 

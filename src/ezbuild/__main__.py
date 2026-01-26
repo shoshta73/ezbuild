@@ -7,7 +7,19 @@ from typing import Annotated
 
 import typer
 
-from ezbuild import CompileCommand, Environment, Language, log, utils
+from ezbuild import (
+    CompileCommand,
+    CyclicDependencyError,
+    DepTree,
+    Environment,
+    Language,
+    Program,
+    SharedLibrary,
+    StaticLibrary,
+    Target,
+    log,
+    utils,
+)
 
 cli: typer.Typer = typer.Typer()
 
@@ -124,322 +136,368 @@ def build(
     log.debug("Executing build.ezbuild")
     exec(build_ezbuild, namespace)
 
+    build_env: Environment | None = None
+    targets: dict[str, Target] = {}
+
     for var_name, value in namespace.items():
         if isinstance(value, Environment):
             log.info(f"Found environment: {var_name}")
+            build_env = value
 
-            if (
-                len(value.programs) == 0
-                and len(value.static_libraries) == 0
-                and len(value.shared_libraries) == 0
-            ):
-                log.error(f"Environment {var_name} has no buid targets")
-                raise typer.Exit
+        if isinstance(value, Program):
+            log.info(f"Found program target: {var_name}")
+            targets[var_name] = value
 
-            log.debug(f"Found {len(value.programs)} programs in environment {var_name}")
-            utils.fs.create_dir_if_not_exists(build_dir)
+        if isinstance(value, StaticLibrary):
+            log.info(f"Found static library target: {var_name}")
+            targets[var_name] = value
 
-            for program in value.programs:
-                log.info(f"Building program {program.name}")
+        if isinstance(value, SharedLibrary):
+            log.info(f"Found shared library target: {var_name}")
+            targets[var_name] = value
 
-                if Language.C in program.languages:
-                    value.ensure_cc()
-                    value.ensure_ccld()
+    if build_env is None:
+        log.error("No build environment found")
+        raise typer.Exit(1)
 
-                if Language.CXX in program.languages:
-                    value.ensure_cc()
-                    value.ensure_cxx()
-                    value.ensure_ccld()
-                    value.ensure_cxxld()
+    if len(targets) == 0:
+        log.error("No targets found")
+        raise typer.Exit(1)
 
-                int_dir = build_dir / program.name
-                utils.fs.create_dir_if_not_exists(int_dir)
+    utils.fs.create_dir_if_not_exists(build_dir)
 
-                local_compile_commands: list[CompileCommand] = []
-                for source in program.sources:
-                    source_path = cwd / source
-                    _temp = int_dir / source
-                    compile_command = CompileCommand()
-                    compile_command.directory = str(int_dir)
-                    compile_command.file = str(cwd / source)
-                    compile_command.output = str(
-                        _temp.parent / ((int_dir / source).name + ".o")
-                    )
+    try:
+        dep_tree = DepTree(targets)
+        build_order = dep_tree.get_build_order()
+    except CyclicDependencyError as e:
+        log.error(str(e))
+        raise typer.Exit(1) from e
 
-                    if source_path.suffix == ".c":
-                        compile_command.command = " ".join(
-                            [
-                                value["CC"],
-                                "-c",
-                                "-o",
-                                compile_command.output,
-                                compile_command.file,
-                            ]
-                        )
-                        log.cc(f"{compile_command.file}")
+    build_artifacts: dict[str, Path] = {}
 
-                    elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
-                        compile_command.command = " ".join(
-                            [
-                                value["CXX"],
-                                "-c",
-                                "-o",
-                                compile_command.output,
-                                compile_command.file,
-                            ]
-                        )
-                        log.cxx(f"{compile_command.file}")
+    for target in build_order:
+        log.info(f"Building {target.name}")
+        if isinstance(target, Program):
+            log.debug(f"Building program {target.name}")
 
-                    result = subprocess.run(
-                        compile_command.command, shell=True, capture_output=True
-                    )
-                    if result.returncode != 0:
-                        log.error("Compilation failed")
-                        log.debug(f"Error: {result.stderr.decode()}")
+            if Language.C in target.languages:
+                build_env.ensure_cc()
+                build_env.ensure_ccld()
 
-                        raise typer.Exit
+            if Language.CXX in target.languages:
+                build_env.ensure_cc()
+                build_env.ensure_cxx()
+                build_env.ensure_ccld()
+                build_env.ensure_cxxld()
 
-                    local_compile_commands.append(compile_command)
+            int_dir = build_dir / target.name
+            utils.fs.create_dir_if_not_exists(int_dir)
 
-                utils.fs.create_dir_if_not_exists(bin_dir)
-                if Language.CXX in program.languages:
-                    cmd = " ".join(
+            local_compile_commands: list[CompileCommand] = []
+            for source in target.sources:
+                source_path = cwd / source
+                _temp = int_dir / source
+                compile_command = CompileCommand()
+                compile_command.directory = str(int_dir)
+                compile_command.file = str(cwd / source)
+                compile_command.output = str(
+                    _temp.parent / ((int_dir / source).name + ".o")
+                )
+
+                if source_path.suffix == ".c":
+                    compile_command.command = " ".join(
                         [
-                            value["CXXLD"],
+                            build_env["CC"],
+                            "-c",
                             "-o",
-                            str(bin_dir / program.name),
-                            *[
-                                local_compile_command.output
-                                for local_compile_command in local_compile_commands
-                            ],
+                            compile_command.output,
+                            compile_command.file,
                         ]
                     )
-                    log.cxxld(f"{bin_dir / program.name}")
+                    log.cc(f"{compile_command.file}")
 
-                else:
-                    cmd = " ".join(
+                elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
+                    compile_command.command = " ".join(
                         [
-                            value["CCLD"],
+                            build_env["CXX"],
+                            "-c",
                             "-o",
-                            str(bin_dir / program.name),
-                            *[
-                                local_compile_command.output
-                                for local_compile_command in local_compile_commands
-                            ],
+                            compile_command.output,
+                            compile_command.file,
                         ]
                     )
-                    log.ccld(f"{bin_dir / program.name}")
+                    log.cxx(f"{compile_command.file}")
 
-                result = subprocess.run(cmd, shell=True, capture_output=True)
-
+                result = subprocess.run(
+                    compile_command.command, shell=True, capture_output=True
+                )
                 if result.returncode != 0:
-                    log.error("Linking failed")
+                    log.error("Compilation failed")
                     log.debug(f"Error: {result.stderr.decode()}")
+
                     raise typer.Exit
 
-                compile_commands.extend(local_compile_commands)
+                local_compile_commands.append(compile_command)
 
-            for static_library in value.static_libraries:
-                log.info(f"Building static library {static_library.name}")
+            utils.fs.create_dir_if_not_exists(bin_dir)
 
-                if Language.C in static_library.languages:
-                    value.ensure_cc()
+            # Collect dependency libraries
+            dep_libs: list[str] = []
+            for dep in target.dependencies:
+                if dep in build_artifacts:
+                    dep_libs.append(str(build_artifacts[dep]))
 
-                if Language.CXX in static_library.languages:
-                    value.ensure_cc()
-                    value.ensure_cxx()
-
-                value.ensure_ar()
-                value.ensure_ranlib()
-
-                int_dir = build_dir / static_library.name
-                utils.fs.create_dir_if_not_exists(int_dir)
-
-                local_compile_commands: list[CompileCommand] = []
-                for source in static_library.sources:
-                    source_path = cwd / source
-                    _temp = int_dir / source
-                    compile_command = CompileCommand()
-                    compile_command.directory = str(int_dir)
-                    compile_command.file = str(cwd / source)
-                    compile_command.output = str(
-                        _temp.parent / ((int_dir / source).name + ".o")
-                    )
-                    if source_path.suffix == ".c":
-                        compile_command.command = " ".join(
-                            [
-                                value["CC"],
-                                "-c",
-                                "-o",
-                                compile_command.output,
-                                compile_command.file,
-                            ]
-                        )
-                        log.cc(f"{compile_command.file}")
-
-                    elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
-                        compile_command.command = " ".join(
-                            [
-                                value["CXX"],
-                                "-c",
-                                "-o",
-                                compile_command.output,
-                                compile_command.file,
-                            ]
-                        )
-                        log.cxx(f"{compile_command.file}")
-
-                    result = subprocess.run(
-                        compile_command.command, shell=True, capture_output=True
-                    )
-                    if result.returncode != 0:
-                        log.error("Compilation failed")
-                        log.debug(f"Error: {result.stderr.decode()}")
-
-                        raise typer.Exit
-
-                    local_compile_commands.append(compile_command)
-
-                utils.fs.create_dir_if_not_exists(lib_dir)
+            if Language.CXX in target.languages:
                 cmd = " ".join(
                     [
-                        value["AR"],
-                        "-rc",
-                        str(lib_dir / f"{static_library.name}.a"),
+                        build_env["CXXLD"],
+                        "-o",
+                        str(bin_dir / target.name),
                         *[
                             local_compile_command.output
                             for local_compile_command in local_compile_commands
                         ],
+                        *dep_libs,
                     ]
                 )
+                log.cxxld(f"{bin_dir / target.name}")
 
-                log.ar(f"{lib_dir / f'{static_library.name}.a'}")
-                result = subprocess.run(cmd, shell=True, capture_output=True)
-
-                if result.returncode != 0:
-                    log.error("Archiving failed")
-                    log.debug(f"Error: {result.stderr.decode()}")
-                    raise typer.Exit
-
+            else:
                 cmd = " ".join(
                     [
-                        value["RANLIB"],
-                        str(lib_dir / f"{static_library.name}.a"),
+                        build_env["CCLD"],
+                        "-o",
+                        str(bin_dir / target.name),
+                        *[
+                            local_compile_command.output
+                            for local_compile_command in local_compile_commands
+                        ],
+                        *dep_libs,
                     ]
                 )
+                log.ccld(f"{bin_dir / target.name}")
 
-                log.ranlib(f"{lib_dir / f'{static_library.name}.a'}")
-                result = subprocess.run(cmd, shell=True, capture_output=True)
+            result = subprocess.run(cmd, shell=True, capture_output=True)
 
-                if result.returncode != 0:
-                    log.error("Ranlib failed")
-                    log.debug(f"Error: {result.stderr.decode()}")
-                    raise typer.Exit
+            if result.returncode != 0:
+                log.error("Linking failed")
+                log.debug(f"Error: {result.stderr.decode()}")
+                raise typer.Exit
 
-                compile_commands.extend(local_compile_commands)
+            build_artifacts[target.name] = bin_dir / target.name
+            compile_commands.extend(local_compile_commands)
 
-            for shared_library in value.shared_libraries:
-                log.info(f"Building shared library {shared_library.name}")
+        if isinstance(target, StaticLibrary):
+            log.debug(f"Building static library {target.name}")
 
-                if Language.C in shared_library.languages:
-                    value.ensure_cc()
-                    value.ensure_ccld()
+            if Language.C in target.languages:
+                build_env.ensure_cc()
 
-                if Language.CXX in shared_library.languages:
-                    value.ensure_cc()
-                    value.ensure_cxx()
-                    value.ensure_ccld()
-                    value.ensure_cxxld()
+            if Language.CXX in target.languages:
+                build_env.ensure_cc()
+                build_env.ensure_cxx()
 
-                int_dir = build_dir / shared_library.name
-                utils.fs.create_dir_if_not_exists(int_dir)
+            build_env.ensure_ar()
+            build_env.ensure_ranlib()
 
-                local_compile_commands: list[CompileCommand] = []
-                for source in shared_library.sources:
-                    source_path = cwd / source
-                    _temp = int_dir / source
-                    compile_command = CompileCommand()
-                    compile_command.directory = str(int_dir)
-                    compile_command.file = str(cwd / source)
-                    compile_command.output = str(
-                        _temp.parent / ((int_dir / source).name + ".o")
-                    )
+            int_dir = build_dir / target.name
+            utils.fs.create_dir_if_not_exists(int_dir)
 
-                    if source_path.suffix == ".c":
-                        compile_command.command = " ".join(
-                            [
-                                value["CC"],
-                                "-fPIC",
-                                "-c",
-                                "-o",
-                                compile_command.output,
-                                compile_command.file,
-                            ]
-                        )
-                        log.cc(f"{compile_command.file}")
-                    elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
-                        compile_command.command = " ".join(
-                            [
-                                value["CXX"],
-                                "-fPIC",
-                                "-c",
-                                "-o",
-                                compile_command.output,
-                                compile_command.file,
-                            ]
-                        )
-                        log.cxx(f"{compile_command.file}")
-
-                    result = subprocess.run(
-                        compile_command.command, shell=True, capture_output=True
-                    )
-                    if result.returncode != 0:
-                        log.error("Compilation failed")
-                        log.debug(f"Error: {result.stderr.decode()}")
-
-                        raise typer.Exit
-
-                    local_compile_commands.append(compile_command)
-
-                utils.fs.create_dir_if_not_exists(lib_dir)
-
-                if Language.CXX in shared_library.languages:
-                    cmd = " ".join(
+            local_compile_commands: list[CompileCommand] = []
+            for source in target.sources:
+                source_path = cwd / source
+                _temp = int_dir / source
+                compile_command = CompileCommand()
+                compile_command.directory = str(int_dir)
+                compile_command.file = str(cwd / source)
+                compile_command.output = str(
+                    _temp.parent / ((int_dir / source).name + ".o")
+                )
+                if source_path.suffix == ".c":
+                    compile_command.command = " ".join(
                         [
-                            value["CXXLD"],
-                            "-shared",
+                            build_env["CC"],
+                            "-c",
                             "-o",
-                            str(lib_dir / f"{shared_library.name}.so"),
-                            *[
-                                local_compile_command.output
-                                for local_compile_command in local_compile_commands
-                            ],
+                            compile_command.output,
+                            compile_command.file,
                         ]
                     )
-                    log.cxxld(f"{lib_dir / f'{shared_library.name}.so'}")
-                else:
-                    cmd = " ".join(
+                    log.cc(f"{compile_command.file}")
+
+                elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
+                    compile_command.command = " ".join(
                         [
-                            value["CCLD"],
-                            "-shared",
+                            build_env["CXX"],
+                            "-c",
                             "-o",
-                            str(lib_dir / f"{shared_library.name}.so"),
-                            *[
-                                local_compile_command.output
-                                for local_compile_command in local_compile_commands
-                            ],
+                            compile_command.output,
+                            compile_command.file,
                         ]
                     )
-                    log.ccld(f"{lib_dir / f'{shared_library.name}.so'}")
+                    log.cxx(f"{compile_command.file}")
 
-                result = subprocess.run(cmd, shell=True, capture_output=True)
-
+                result = subprocess.run(
+                    compile_command.command, shell=True, capture_output=True
+                )
                 if result.returncode != 0:
-                    log.error("Linking failed")
+                    log.error("Compilation failed")
                     log.debug(f"Error: {result.stderr.decode()}")
+
                     raise typer.Exit
 
-                compile_commands.extend(local_compile_commands)
+                local_compile_commands.append(compile_command)
+
+            utils.fs.create_dir_if_not_exists(lib_dir)
+            cmd = " ".join(
+                [
+                    build_env["AR"],
+                    "-rc",
+                    str(lib_dir / f"{target.name}.a"),
+                    *[
+                        local_compile_command.output
+                        for local_compile_command in local_compile_commands
+                    ],
+                ]
+            )
+
+            log.ar(f"{lib_dir / f'{target.name}.a'}")
+            result = subprocess.run(cmd, shell=True, capture_output=True)
+
+            if result.returncode != 0:
+                log.error("Archiving failed")
+                log.debug(f"Error: {result.stderr.decode()}")
+                raise typer.Exit
+
+            cmd = " ".join(
+                [
+                    build_env["RANLIB"],
+                    str(lib_dir / f"{target.name}.a"),
+                ]
+            )
+
+            log.ranlib(f"{lib_dir / f'{target.name}.a'}")
+            result = subprocess.run(cmd, shell=True, capture_output=True)
+
+            if result.returncode != 0:
+                log.error("Ranlib failed")
+                log.debug(f"Error: {result.stderr.decode()}")
+                raise typer.Exit
+
+            build_artifacts[target.name] = lib_dir / f"{target.name}.a"
+            compile_commands.extend(local_compile_commands)
+
+        if isinstance(target, SharedLibrary):
+            log.debug(f"Building shared library {target.name}")
+
+            if Language.C in target.languages:
+                build_env.ensure_cc()
+                build_env.ensure_ccld()
+
+            if Language.CXX in target.languages:
+                build_env.ensure_cc()
+                build_env.ensure_cxx()
+                build_env.ensure_ccld()
+                build_env.ensure_cxxld()
+
+            int_dir = build_dir / target.name
+            utils.fs.create_dir_if_not_exists(int_dir)
+
+            local_compile_commands: list[CompileCommand] = []
+            for source in target.sources:
+                source_path = cwd / source
+                _temp = int_dir / source
+                compile_command = CompileCommand()
+                compile_command.directory = str(int_dir)
+                compile_command.file = str(cwd / source)
+                compile_command.output = str(
+                    _temp.parent / ((int_dir / source).name + ".o")
+                )
+
+                if source_path.suffix == ".c":
+                    compile_command.command = " ".join(
+                        [
+                            build_env["CC"],
+                            "-fPIC",
+                            "-c",
+                            "-o",
+                            compile_command.output,
+                            compile_command.file,
+                        ]
+                    )
+                    log.cc(f"{compile_command.file}")
+                elif source_path.suffix in [".cpp", ".cxx", ".cc"]:
+                    compile_command.command = " ".join(
+                        [
+                            build_env["CXX"],
+                            "-fPIC",
+                            "-c",
+                            "-o",
+                            compile_command.output,
+                            compile_command.file,
+                        ]
+                    )
+                    log.cxx(f"{compile_command.file}")
+
+                result = subprocess.run(
+                    compile_command.command, shell=True, capture_output=True
+                )
+                if result.returncode != 0:
+                    log.error("Compilation failed")
+                    log.debug(f"Error: {result.stderr.decode()}")
+
+                    raise typer.Exit
+
+                local_compile_commands.append(compile_command)
+
+            utils.fs.create_dir_if_not_exists(lib_dir)
+
+            # Collect dependency libraries
+            dep_libs: list[str] = []
+            for dep in target.dependencies:
+                if dep in build_artifacts:
+                    dep_libs.append(str(build_artifacts[dep]))
+
+            if Language.CXX in target.languages:
+                cmd = " ".join(
+                    [
+                        build_env["CXXLD"],
+                        "-shared",
+                        "-o",
+                        str(lib_dir / f"{target.name}.so"),
+                        *[
+                            local_compile_command.output
+                            for local_compile_command in local_compile_commands
+                        ],
+                        *dep_libs,
+                    ]
+                )
+                log.cxxld(f"{lib_dir / f'{target.name}.so'}")
+            else:
+                cmd = " ".join(
+                    [
+                        build_env["CCLD"],
+                        "-shared",
+                        "-o",
+                        str(lib_dir / f"{target.name}.so"),
+                        *[
+                            local_compile_command.output
+                            for local_compile_command in local_compile_commands
+                        ],
+                        *dep_libs,
+                    ]
+                )
+                log.ccld(f"{lib_dir / f'{target.name}.so'}")
+
+            result = subprocess.run(cmd, shell=True, capture_output=True)
+
+            if result.returncode != 0:
+                log.error("Linking failed")
+                log.debug(f"Error: {result.stderr.decode()}")
+                raise typer.Exit
+
+            build_artifacts[target.name] = lib_dir / f"{target.name}.so"
+            compile_commands.extend(local_compile_commands)
 
     log.debug("Writing compile_commands.json")
 
