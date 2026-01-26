@@ -234,9 +234,8 @@ def build(
                     )
                     log.cxx(f"{compile_command.file}")
 
-                result = subprocess.run(
-                    compile_command.command, shell=True, capture_output=True
-                )
+                cmd_list = compile_command.command.split()
+                result = subprocess.run(cmd_list, capture_output=True)
                 if result.returncode != 0:
                     log.error("Compilation failed")
                     log.debug(f"Error: {result.stderr.decode()}")
@@ -254,36 +253,32 @@ def build(
                     dep_libs.append(str(build_artifacts[dep]))
 
             if Language.CXX in target.languages:
-                cmd = " ".join(
-                    [
-                        build_env["CXXLD"],
-                        "-o",
-                        str(bin_dir / target.name),
-                        *[
-                            local_compile_command.output
-                            for local_compile_command in local_compile_commands
-                        ],
-                        *dep_libs,
-                    ]
-                )
+                cmd_list = [
+                    build_env["CXXLD"],
+                    "-o",
+                    str(bin_dir / target.name),
+                    *[
+                        local_compile_command.output
+                        for local_compile_command in local_compile_commands
+                    ],
+                    *dep_libs,
+                ]
                 log.cxxld(f"{bin_dir / target.name}")
 
             else:
-                cmd = " ".join(
-                    [
-                        build_env["CCLD"],
-                        "-o",
-                        str(bin_dir / target.name),
-                        *[
-                            local_compile_command.output
-                            for local_compile_command in local_compile_commands
-                        ],
-                        *dep_libs,
-                    ]
-                )
+                cmd_list = [
+                    build_env["CCLD"],
+                    "-o",
+                    str(bin_dir / target.name),
+                    *[
+                        local_compile_command.output
+                        for local_compile_command in local_compile_commands
+                    ],
+                    *dep_libs,
+                ]
                 log.ccld(f"{bin_dir / target.name}")
 
-            result = subprocess.run(cmd, shell=True, capture_output=True)
+            result = subprocess.run(cmd_list, capture_output=True)
 
             if result.returncode != 0:
                 log.error("Linking failed")
@@ -343,9 +338,8 @@ def build(
                     )
                     log.cxx(f"{compile_command.file}")
 
-                result = subprocess.run(
-                    compile_command.command, shell=True, capture_output=True
-                )
+                cmd_list = compile_command.command.split()
+                result = subprocess.run(cmd_list, capture_output=True)
                 if result.returncode != 0:
                     log.error("Compilation failed")
                     log.debug(f"Error: {result.stderr.decode()}")
@@ -355,35 +349,31 @@ def build(
                 local_compile_commands.append(compile_command)
 
             utils.fs.create_dir_if_not_exists(lib_dir)
-            cmd = " ".join(
-                [
-                    build_env["AR"],
-                    "-rc",
-                    str(lib_dir / f"{target.name}.a"),
-                    *[
-                        local_compile_command.output
-                        for local_compile_command in local_compile_commands
-                    ],
-                ]
-            )
+            cmd_list = [
+                build_env["AR"],
+                "-rc",
+                str(lib_dir / f"{target.name}.a"),
+                *[
+                    local_compile_command.output
+                    for local_compile_command in local_compile_commands
+                ],
+            ]
 
             log.ar(f"{lib_dir / f'{target.name}.a'}")
-            result = subprocess.run(cmd, shell=True, capture_output=True)
+            result = subprocess.run(cmd_list, capture_output=True)
 
             if result.returncode != 0:
                 log.error("Archiving failed")
                 log.debug(f"Error: {result.stderr.decode()}")
                 raise typer.Exit
 
-            cmd = " ".join(
-                [
-                    build_env["RANLIB"],
-                    str(lib_dir / f"{target.name}.a"),
-                ]
-            )
+            cmd_list = [
+                build_env["RANLIB"],
+                str(lib_dir / f"{target.name}.a"),
+            ]
 
             log.ranlib(f"{lib_dir / f'{target.name}.a'}")
-            result = subprocess.run(cmd, shell=True, capture_output=True)
+            result = subprocess.run(cmd_list, capture_output=True)
 
             if result.returncode != 0:
                 log.error("Ranlib failed")
@@ -445,9 +435,8 @@ def build(
                     )
                     log.cxx(f"{compile_command.file}")
 
-                result = subprocess.run(
-                    compile_command.command, shell=True, capture_output=True
-                )
+                cmd_list = compile_command.command.split()
+                result = subprocess.run(cmd_list, capture_output=True)
                 if result.returncode != 0:
                     log.error("Compilation failed")
                     log.debug(f"Error: {result.stderr.decode()}")
@@ -465,37 +454,33 @@ def build(
                     dep_libs.append(str(build_artifacts[dep]))
 
             if Language.CXX in target.languages:
-                cmd = " ".join(
-                    [
-                        build_env["CXXLD"],
-                        "-shared",
-                        "-o",
-                        str(lib_dir / f"{target.name}.so"),
-                        *[
-                            local_compile_command.output
-                            for local_compile_command in local_compile_commands
-                        ],
-                        *dep_libs,
-                    ]
-                )
+                cmd_list = [
+                    build_env["CXXLD"],
+                    "-shared",
+                    "-o",
+                    str(lib_dir / f"{target.name}.so"),
+                    *[
+                        local_compile_command.output
+                        for local_compile_command in local_compile_commands
+                    ],
+                    *dep_libs,
+                ]
                 log.cxxld(f"{lib_dir / f'{target.name}.so'}")
             else:
-                cmd = " ".join(
-                    [
-                        build_env["CCLD"],
-                        "-shared",
-                        "-o",
-                        str(lib_dir / f"{target.name}.so"),
-                        *[
-                            local_compile_command.output
-                            for local_compile_command in local_compile_commands
-                        ],
-                        *dep_libs,
-                    ]
-                )
+                cmd_list = [
+                    build_env["CCLD"],
+                    "-shared",
+                    "-o",
+                    str(lib_dir / f"{target.name}.so"),
+                    *[
+                        local_compile_command.output
+                        for local_compile_command in local_compile_commands
+                    ],
+                    *dep_libs,
+                ]
                 log.ccld(f"{lib_dir / f'{target.name}.so'}")
 
-            result = subprocess.run(cmd, shell=True, capture_output=True)
+            result = subprocess.run(cmd_list, capture_output=True)
 
             if result.returncode != 0:
                 log.error("Linking failed")
@@ -526,7 +511,7 @@ def run(
 
     cmd = f"{bin_dir / name}"
     log.debug(f"Running {cmd}")
-    result = subprocess.run(cmd, shell=True)
+    result = subprocess.run([str(bin_dir / name)])
 
     if result.returncode != 0:
         log.error("Running failed")
