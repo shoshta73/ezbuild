@@ -32,6 +32,11 @@ jobs:
         run: |
           uv build
 
+      - name: Install libcurl
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libcurl4-openssl-dev
+
       - name: Build examples
         run: |
           cd examples
