@@ -12,7 +12,7 @@ class LogLevel(Enum):
 
 
 def debug(message: str) -> None:
-    if PythonEnvironment.debug():
+    if not PythonEnvironment.debug():
         return
 
     typer.echo(f"[{typer.style(LogLevel.DEBUG.name, fg=typer.colors.CYAN)}] {message}")
