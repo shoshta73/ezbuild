@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from ezbuild.log import LogLevel, debug, error, info
+from ezbuild.log import LogLevel, ar, cc, ccld, cxx, cxxld, debug, error, info, ranlib
 from ezbuild.python_environment import PythonEnvironment
 
 if TYPE_CHECKING:
@@ -82,3 +82,45 @@ def test_log_format_brackets(capsys) -> None:
     captured = capsys.readouterr()
     assert "[" in captured.out
     assert "]" in captured.out
+
+
+def test_cc_output(capsys) -> None:
+    cc("main.c")
+    captured = capsys.readouterr()
+    assert "CC" in captured.out
+    assert "main.c" in captured.out
+
+
+def test_cxx_output(capsys) -> None:
+    cxx("main.cpp")
+    captured = capsys.readouterr()
+    assert "CXX" in captured.out
+    assert "main.cpp" in captured.out
+
+
+def test_ccld_output(capsys) -> None:
+    ccld("program")
+    captured = capsys.readouterr()
+    assert "CCLD" in captured.out
+    assert "program" in captured.out
+
+
+def test_cxxld_output(capsys) -> None:
+    cxxld("program")
+    captured = capsys.readouterr()
+    assert "CXXLD" in captured.out
+    assert "program" in captured.out
+
+
+def test_ar_output(capsys) -> None:
+    ar("libfoo.a")
+    captured = capsys.readouterr()
+    assert "AR" in captured.out
+    assert "libfoo.a" in captured.out
+
+
+def test_ranlib_output(capsys) -> None:
+    ranlib("libfoo.a")
+    captured = capsys.readouterr()
+    assert "RANLIB" in captured.out
+    assert "libfoo.a" in captured.out
