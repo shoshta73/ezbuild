@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.0] - 2026-01-28
+
+### Added
+- Compiler defines support in build configuration
+- Public defines for library headers
+- Library existence checking on system
+- Example projects for defines:
+  - Simple C program with defines
+  - Simple C++ program with defines
+  - C program with public defines (single library)
+  - C++ program with public defines (single library)
+  - C program with public defines (multiple libraries)
+  - C++ program with public defines (multiple libraries)
+
+### Changed
+- Moved `init` and `clean` commands to commands submodule
+- Removed restricted Python version requirement
+
+### Fixed
+- Example project build issues
+
 ## [0.3.0] - 2026-01-27
 
 ### Added
