@@ -6,7 +6,6 @@ sources = ["main.c"]
 system_dependencies = []
 
 if has_libcurl:
-    print("Building with libcurl support")
     sources.append("curl.c")
     system_dependencies.append("libcurl")
 
