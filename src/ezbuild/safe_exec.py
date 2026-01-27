@@ -1,14 +1,75 @@
 import ast
 from typing import TYPE_CHECKING
 
-from RestrictedPython import compile_restricted, safe_builtins
-
 if TYPE_CHECKING:
     from typing import Any
 
 
 class SafeBuildError(Exception):
     pass
+
+
+_SAFE_BUILTINS = {
+    "None": None,
+    "True": True,
+    "False": False,
+    "bool": bool,
+    "int": int,
+    "float": float,
+    "str": str,
+    "list": list,
+    "tuple": tuple,
+    "dict": dict,
+    "set": set,
+    "frozenset": frozenset,
+    "bytes": bytes,
+    "bytearray": bytearray,
+    "complex": complex,
+    "object": object,
+    "type": type,
+    "isinstance": isinstance,
+    "issubclass": issubclass,
+    "callable": callable,
+    "len": len,
+    "range": range,
+    "enumerate": enumerate,
+    "zip": zip,
+    "map": map,
+    "filter": filter,
+    "reversed": reversed,
+    "sorted": sorted,
+    "any": any,
+    "all": all,
+    "sum": sum,
+    "max": max,
+    "min": min,
+    "abs": abs,
+    "round": round,
+    "divmod": divmod,
+    "pow": pow,
+    "ord": ord,
+    "chr": chr,
+    "bin": bin,
+    "hex": hex,
+    "oct": oct,
+    "ascii": ascii,
+    "slice": slice,
+    "iter": iter,
+    "next": next,
+    "hasattr": hasattr,
+    "getattr": getattr,
+    "setattr": setattr,
+    "delattr": delattr,
+    "id": id,
+    "hash": hash,
+    "repr": repr,
+    "Exception": Exception,
+    "TypeError": TypeError,
+    "ValueError": ValueError,
+    "KeyError": KeyError,
+    "IndexError": IndexError,
+    "AttributeError": AttributeError,
+}
 
 
 def _validate_ast(node: ast.AST) -> None:
@@ -77,13 +138,10 @@ def safe_execute(
 
     _validate_ast(tree)
 
-    byte_code = compile_restricted(build_code, filename=filename, mode="exec")
-
-    if byte_code is None:
-        raise SafeBuildError("RestrictedPython compilation failed")
+    byte_code = compile(tree, filename, mode="exec")
 
     restricted_namespace = {
-        "__builtins__": safe_builtins,
+        "__builtins__": _SAFE_BUILTINS,
         **namespace,
     }
 

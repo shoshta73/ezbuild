@@ -6,7 +6,7 @@ readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.14"
 license = { file = "LICENSE" }
 authors = [{ name = "Borna Šoštarić" }]
-dependencies = ["RestrictedPython==8.1", "typer==0.21.1"]
+dependencies = ["typer==0.21.1"]
 
 [project.urls]
 homepage = "https://github.com/shoshta73/ezbuild"
