@@ -37,6 +37,7 @@ class Program:
     dependencies: list[str] = field(default_factory=list)
     system_dependencies: list[str] = field(default_factory=list)
     defines: list[str] = field(default_factory=list)
+    public_defines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -47,6 +48,7 @@ class StaticLibrary:
     dependencies: list[str] = field(default_factory=list)
     system_dependencies: list[str] = field(default_factory=list)
     defines: list[str] = field(default_factory=list)
+    public_defines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -57,6 +59,7 @@ class SharedLibrary:
     dependencies: list[str] = field(default_factory=list)
     system_dependencies: list[str] = field(default_factory=list)
     defines: list[str] = field(default_factory=list)
+    public_defines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -83,9 +86,12 @@ class Environment:
         dependencies: None | list[str] = None,
         system_dependencies: None | list[str] = None,
         defines: None | list[str] = None,
+        public_defines: None | list[str] = None,
     ) -> Program:
         defines_list = defines or []
         _validate_defines(defines_list)
+        public_defines_list = public_defines or []
+        _validate_defines(public_defines_list)
         program = Program(
             name=name,
             languages=languages,
@@ -93,6 +99,7 @@ class Environment:
             dependencies=dependencies or [],
             system_dependencies=system_dependencies or [],
             defines=defines_list,
+            public_defines=public_defines_list,
         )
         self.programs.append(program)
         return program
@@ -105,9 +112,12 @@ class Environment:
         dependencies: None | list[str] = None,
         system_dependencies: None | list[str] = None,
         defines: None | list[str] = None,
+        public_defines: None | list[str] = None,
     ) -> StaticLibrary:
         defines_list = defines or []
         _validate_defines(defines_list)
+        public_defines_list = public_defines or []
+        _validate_defines(public_defines_list)
         static_library = StaticLibrary(
             name=name,
             languages=languages,
@@ -115,6 +125,7 @@ class Environment:
             dependencies=dependencies or [],
             system_dependencies=system_dependencies or [],
             defines=defines_list,
+            public_defines=public_defines_list,
         )
         self.static_libraries.append(static_library)
         return static_library
@@ -127,9 +138,12 @@ class Environment:
         dependencies: None | list[str] = None,
         system_dependencies: None | list[str] = None,
         defines: None | list[str] = None,
+        public_defines: None | list[str] = None,
     ) -> SharedLibrary:
         defines_list = defines or []
         _validate_defines(defines_list)
+        public_defines_list = public_defines or []
+        _validate_defines(public_defines_list)
         shared_library = SharedLibrary(
             name=name,
             languages=languages,
@@ -137,6 +151,7 @@ class Environment:
             dependencies=dependencies or [],
             system_dependencies=system_dependencies or [],
             defines=defines_list,
+            public_defines=public_defines_list,
         )
         self.shared_libraries.append(shared_library)
         return shared_library

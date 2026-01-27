@@ -1,0 +1,32 @@
+env = Environment()
+
+lib1 = env.StaticLibrary(
+    name="lib1",
+    languages=[Language.C],
+    sources=["lib1.c"],
+    defines=["LIB1_INTERNAL_DEBUG"],
+    public_defines=[
+        "LIB1_PUBLIC_VERSION_MAJOR=1",
+        "LIB1_PUBLIC_VERSION_MINOR=5",
+        "LIB1_PUBLIC_FEATURE_ENABLED",
+    ],
+)
+
+lib2 = env.StaticLibrary(
+    name="lib2",
+    languages=[Language.C],
+    sources=["lib2.c"],
+    defines=["LIB2_INTERNAL_DEBUG"],
+    public_defines=[
+        "LIB2_PUBLIC_VERSION_MAJOR=2",
+        "LIB2_PUBLIC_VERSION_MINOR=3",
+        "LIB2_PUBLIC_FEATURE_ENABLED",
+    ],
+)
+
+myapp = env.Program(
+    name="multi-defines-example",
+    languages=[Language.C],
+    sources=["main.c"],
+    dependencies=["lib1", "lib2"],
+)

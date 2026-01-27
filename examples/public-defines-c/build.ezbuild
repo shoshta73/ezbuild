@@ -1,0 +1,20 @@
+env = Environment()
+
+mylib = env.StaticLibrary(
+    name="mylib",
+    languages=[Language.C],
+    sources=["lib.c"],
+    defines=["LIB_INTERNAL_DEBUG"],
+    public_defines=[
+        "LIB_PUBLIC_VERSION_MAJOR=2",
+        "LIB_PUBLIC_VERSION_MINOR=5",
+        "LIB_PUBLIC_FEATURE_ENABLED",
+    ],
+)
+
+myapp = env.Program(
+    name="public-defines-example",
+    languages=[Language.C],
+    sources=["main.c"],
+    dependencies=["mylib"],
+)

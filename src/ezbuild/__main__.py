@@ -35,6 +35,31 @@ def _format_define(define: str) -> str:
     return f"-D{define}"
 
 
+def _collect_public_defines(target: Target, targets: dict[str, Target]) -> list[str]:
+    """
+    Collect all public defines from the target's dependencies.
+    Uses BFS to traverse the dependency tree.
+    """
+    public_defines: list[str] = []
+    visited: set[str] = set()
+    queue: list[str] = [dep for dep in target.dependencies if dep in targets]
+
+    while queue:
+        dep_name = queue.pop(0)
+        if dep_name in visited:
+            continue
+        visited.add(dep_name)
+
+        dep_target = targets[dep_name]
+        public_defines.extend(dep_target.public_defines)
+
+        for trans_dep in dep_target.dependencies:
+            if trans_dep in targets and trans_dep not in visited:
+                queue.append(trans_dep)
+
+    return public_defines
+
+
 def version_callback(value: bool) -> None:
     if value:
         print(f"ezbuild {version('ezbuild')}")
@@ -155,6 +180,8 @@ def build(
             utils.fs.create_dir_if_not_exists(int_dir)
 
             local_compile_commands: list[CompileCommand] = []
+            public_defines = _collect_public_defines(target, targets)
+            all_defines = target.defines + target.public_defines + public_defines
             for source in target.sources:
                 source_path = cwd / source
                 _temp = int_dir / source
@@ -170,7 +197,7 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
-                    for define in target.defines:
+                    for define in all_defines:
                         compile_flags.append(_format_define(define))
 
                     compile_command.command = " ".join(
@@ -190,7 +217,7 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
-                    for define in target.defines:
+                    for define in all_defines:
                         compile_flags.append(_format_define(define))
 
                     compile_command.command = " ".join(
@@ -282,6 +309,8 @@ def build(
             int_dir = build_dir / target.name
             utils.fs.create_dir_if_not_exists(int_dir)
             local_compile_commands: list[CompileCommand] = []
+            public_defines = _collect_public_defines(target, targets)
+            all_defines = target.defines + target.public_defines + public_defines
             for source in target.sources:
                 source_path = cwd / source
                 _temp = int_dir / source
@@ -297,7 +326,7 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
-                    for define in target.defines:
+                    for define in all_defines:
                         compile_flags.append(_format_define(define))
 
                     compile_command.command = " ".join(
@@ -317,7 +346,7 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
-                    for define in target.defines:
+                    for define in all_defines:
                         compile_flags.append(_format_define(define))
 
                     compile_command.command = " ".join(
@@ -394,6 +423,8 @@ def build(
             utils.fs.create_dir_if_not_exists(int_dir)
 
             local_compile_commands: list[CompileCommand] = []
+            public_defines = _collect_public_defines(target, targets)
+            all_defines = target.defines + target.public_defines + public_defines
             for source in target.sources:
                 source_path = cwd / source
                 _temp = int_dir / source
@@ -409,7 +440,7 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
-                    for define in target.defines:
+                    for define in all_defines:
                         compile_flags.append(_format_define(define))
 
                     compile_command.command = " ".join(
@@ -429,7 +460,7 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
-                    for define in target.defines:
+                    for define in all_defines:
                         compile_flags.append(_format_define(define))
 
                     compile_command.command = " ".join(

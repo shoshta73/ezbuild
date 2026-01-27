@@ -660,3 +660,94 @@ def test_program_with_d_prefix_raises_error(mocker: MockerFixture) -> None:
             defines=["DEBUG", "-DVERSION"],
         )
     mock_error.assert_called_once_with("Define '-DVERSION' should not start with '-D'")
+
+
+def test_program_with_public_defines() -> None:
+    program = Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+        public_defines=["DEBUG", "VERSION=1.0"],
+    )
+    assert program.public_defines == ["DEBUG", "VERSION=1.0"]
+
+
+def test_program_public_defines_default() -> None:
+    program = Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+    )
+    assert program.public_defines == []
+
+
+def test_environment_program_method_with_public_defines() -> None:
+    env = Environment()
+    program = env.Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+        public_defines=["DEBUG"],
+    )
+    assert isinstance(program, Program)
+    assert program.public_defines == ["DEBUG"]
+    assert program in env.programs
+
+
+def test_program_public_defines_with_spaces() -> None:
+    env = Environment()
+    program = env.Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+        public_defines=["PROJECT_NAME=My Project"],
+    )
+    assert program.public_defines == ["PROJECT_NAME=My Project"]
+
+
+def test_static_library_with_public_defines() -> None:
+    lib = StaticLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+        public_defines=["LIB_BUILD"],
+    )
+    assert lib.public_defines == ["LIB_BUILD"]
+
+
+def test_shared_library_with_public_defines() -> None:
+    lib = SharedLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+        public_defines=["SHARED_BUILD"],
+    )
+    assert lib.public_defines == ["SHARED_BUILD"]
+
+
+def test_program_with_empty_public_define_raises_error(mocker: MockerFixture) -> None:
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    with pytest.raises(Exit):
+        env.Program(
+            name="myapp",
+            languages=[Language.C],
+            sources=["main.c"],
+            public_defines=["DEBUG", ""],
+        )
+    mock_error.assert_called_once_with("Define cannot be empty string")
+
+
+def test_program_with_d_prefix_public_define_raises_error(
+    mocker: MockerFixture,
+) -> None:
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    with pytest.raises(Exit):
+        env.Program(
+            name="myapp",
+            languages=[Language.C],
+            sources=["main.c"],
+            public_defines=["DEBUG", "-DVERSION"],
+        )
+    mock_error.assert_called_once_with("Define '-DVERSION' should not start with '-D'")
