@@ -2,7 +2,6 @@ import json
 import subprocess
 from importlib.metadata import version
 from pathlib import Path
-from shutil import rmtree
 from typing import Annotated
 
 import typer

@@ -82,7 +82,7 @@ def main():
     update_pyproject(old_version, new_version)
     update_init(old_version, new_version)
 
-    print(f"Updated pyproject.toml and src/ezbuild/__init__.py")
+    print("Updated pyproject.toml and src/ezbuild/__init__.py")
 
 
 if __name__ == "__main__":
