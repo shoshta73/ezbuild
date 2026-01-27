@@ -1,0 +1,18 @@
+env = Environment()
+
+has_libcurl, libcurl = env.find_library("libcurl")
+
+sources = ["main.c"]
+system_dependencies = []
+
+if has_libcurl:
+    print("Building with libcurl support")
+    sources.append("curl.c")
+    system_dependencies.append("libcurl")
+
+myapp = env.Program(
+    name="myapp",
+    languages=[Language.C],
+    sources=sources,
+    system_dependencies=system_dependencies,
+)

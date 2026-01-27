@@ -438,3 +438,82 @@ def test_ensure_ranlib_unsupported_platform(mocker: MockerFixture) -> None:
     with pytest.raises(Exit):
         env.ensure_ranlib()
     mock_error.assert_called_once_with("Unsupported platform")
+
+
+def test_find_library_found(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "linux")
+    mocker.patch("ezbuild.pkg_config.which", return_value="/usr/bin/pkg-config")
+    mocker.patch("ezbuild.pkg_config.debug")
+
+    from ezbuild.environment import SystemLibrary
+
+    cflags_mock = mocker.Mock()
+    cflags_mock.stdout.decode.return_value = "-I/usr/include/curl"
+    cflags_mock.stderr.decode.return_value = ""
+    cflags_mock.returncode = 0
+
+    libs_mock = mocker.Mock()
+    libs_mock.stdout.decode.return_value = "-lcurl"
+    libs_mock.stderr.decode.return_value = ""
+    libs_mock.returncode = 0
+
+    mocker.patch(
+        "ezbuild.pkg_config.subprocess.run", side_effect=[cflags_mock, libs_mock]
+    )
+
+    mocker.patch("ezbuild.environment.debug")
+    env = Environment()
+
+    found, lib = env.find_library("libcurl")
+
+    assert found is True
+    assert isinstance(lib, SystemLibrary)
+    assert lib.name == "libcurl"
+    assert lib.compile_flags == ["-I/usr/include/curl"]
+    assert lib.link_flags == ["-lcurl"]
+
+
+def test_find_library_not_found(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "linux")
+    mocker.patch("ezbuild.pkg_config.which", return_value="/usr/bin/pkg-config")
+
+    import subprocess
+
+    mocker.patch(
+        "ezbuild.pkg_config.subprocess.run",
+        side_effect=subprocess.CalledProcessError(
+            1, "pkg-config", stderr=b"Package 'nonexistent' was not found"
+        ),
+    )
+
+    mocker.patch("ezbuild.environment.debug")
+    env = Environment()
+
+    found, lib = env.find_library("nonexistent")
+
+    assert found is False
+    assert lib is None
+
+
+def test_find_library_pkg_config_unavailable(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "linux")
+    mocker.patch("ezbuild.pkg_config.which", return_value=None)
+    mocker.patch("ezbuild.environment.debug")
+    env = Environment()
+
+    found, lib = env.find_library("libcurl")
+
+    assert found is False
+    assert lib is None
+
+
+def test_find_library_platform_unsupported(mocker: MockerFixture) -> None:
+    mocker.patch("ezbuild.environment.platform", "win32")
+    mocker.patch("ezbuild.pkg_config.which", return_value=None)
+    mocker.patch("ezbuild.environment.debug")
+    env = Environment()
+
+    found, lib = env.find_library("libcurl")
+
+    assert found is False
+    assert lib is None

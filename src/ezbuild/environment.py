@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from typer import Exit
 
+from ezbuild import pkg_config
 from ezbuild.log import debug, error
 
 if TYPE_CHECKING:
@@ -219,3 +220,21 @@ class Environment:
             raise Exit
         else:
             debug("pkg-config is available")
+
+    def find_library(
+        self,
+        package: str,
+    ) -> tuple[bool, SystemLibrary | None]:
+        debug(f"Checking for library: {package}")
+
+        if not pkg_config.is_available():
+            debug("pkg-config is not available")
+            return False, None
+
+        try:
+            system_lib = pkg_config.query_package(package)
+            debug(f"Found library: {package}")
+            return True, system_lib
+        except RuntimeError:
+            debug(f"Library not found: {package}")
+            return False, None
