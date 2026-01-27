@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.3.0] - 2026-01-27
+
+### Added
+- System library resolution via pkg-config
+- SystemLibrary class to public API
+- pkg_config module for finding system libraries
+- CLI commands for system library resolution
+- System library tests (253 test cases)
+- Example projects for system library usage:
+  - Simple C program with system library
+  - Simple C++ program with system library
+
+### Changed
+- Debug logging now uses environment variable instead of __debug__
+
 ## [0.2.1] - 2026-01-26
 
 ### Added
