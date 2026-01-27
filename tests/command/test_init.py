@@ -84,6 +84,15 @@ def test_init_unsupported_language(tmp_path: Path) -> None:
     assert "Unsupported language" in message
 
 
+def test_init_unsupported_language_java(tmp_path: Path) -> None:
+    """Test error for another unsupported language."""
+    os.chdir(tmp_path)
+    exit_code, message = init(language="java", name="myproject")
+
+    assert exit_code == 2
+    assert "Unsupported language" in message
+
+
 @patch("ezbuild.commands.init.prompt")
 def test_init_default_name_from_directory(mock_prompt, tmp_path: Path) -> None:
     """Test using directory name as default project name."""

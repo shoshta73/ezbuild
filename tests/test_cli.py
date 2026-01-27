@@ -41,10 +41,11 @@ def test_init_cxx_language(tmp_path) -> None:
         assert (cwd / "myproject.cxx").exists()
 
 
-def test_init_language_short_flag(tmp_path) -> None:
-    """Test init command with short language flag."""
+@pytest.mark.parametrize("lang", ["c"])
+def test_init_c_short_flag(tmp_path, lang: str) -> None:
+    """Test init command with short language flag for C."""
     with runner.isolated_filesystem(temp_dir=tmp_path):
-        result = runner.invoke(cli, ["init", "myproject", "-l", "c"])
+        result = runner.invoke(cli, ["init", "myproject", "-l", lang])
         assert result.exit_code == 0
 
         from pathlib import Path
@@ -52,6 +53,20 @@ def test_init_language_short_flag(tmp_path) -> None:
         cwd = Path.cwd()
         assert (cwd / "build.ezbuild").exists()
         assert (cwd / "myproject.c").exists()
+
+
+@pytest.mark.parametrize("lang", ["cxx", "c++", "cc", "cpp"])
+def test_init_cxx_short_flag(tmp_path, lang: str) -> None:
+    """Test init command with short language flag for C++ variants."""
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(cli, ["init", "myproject", "-l", lang])
+        assert result.exit_code == 0
+
+        from pathlib import Path
+
+        cwd = Path.cwd()
+        assert (cwd / "build.ezbuild").exists()
+        assert (cwd / "myproject.cxx").exists()
 
 
 @pytest.mark.parametrize("lang", ["cxx", "c++", "cc", "cpp"])
@@ -83,6 +98,14 @@ def test_init_unsupported_language(tmp_path) -> None:
     """Test init command fails with unsupported language."""
     with runner.isolated_filesystem(temp_dir=tmp_path):
         result = runner.invoke(cli, ["init", "myproject", "--language", "rust"])
+        assert result.exit_code == 2
+        assert "Unsupported language" in result.output
+
+
+def test_init_unsupported_language_short_flag(tmp_path) -> None:
+    """Test init command fails with unsupported language using short flag."""
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        result = runner.invoke(cli, ["init", "myproject", "-l", "rust"])
         assert result.exit_code == 2
         assert "Unsupported language" in result.output
 
