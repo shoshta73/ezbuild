@@ -19,6 +19,7 @@ from ezbuild import (
     StaticLibrary,
     SystemLibrary,
     Target,
+    commands,
     log,
     pkg_config,
     safe_execute,
@@ -44,71 +45,10 @@ def init(
     ] = None,
 ) -> None:
     """Initialize a new project."""
-    cwd = Path.cwd()
-
-    if language is None:
-        lang: Language = typer.prompt(
-            "Language which is used", type=Language, default=Language.C
-        )
-    elif language not in ["c", "cxx", "c++", "cc", "cpp"]:
-        log.error(f"Unsupported language: {language}")
-        raise typer.Exit(1)
-    else:
-        lang = Language.CXX if language in ["cxx", "c++", "cc", "cpp"] else Language.C
-
-    log.info(f'Using "{lang.name}" as the language')
-
-    if name is None:
-        name = (
-            typer.prompt(
-                "Name of the project to initialize", type=str, default=cwd.name
-            )
-            if language is None
-            else cwd.name
-        )
-
-    log.info(f'Using "{name}" as the project name')
-
-    if any(cwd.iterdir()):
-        log.error(f'Directory "{name}" is not empty')
-        raise typer.Exit(1)
-
-    log.debug("Writing build.ezbuild")
-
-    with (cwd / "build.ezbuild").open("w") as f:
-        f.write(f"""env = Environment()
-
-{name} = env.Program(
-    name='{name}',
-    languages=[Language.{lang.name}],
-    sources=['{name}.{lang.value}'],
-)
-""")
-
-    log.info("Wrote build.ezbuild")
-
-    if lang == Language.C:
-        log.debug(f"Writing {name}.c")
-        with (cwd / f"{name}.c").open("w") as f:
-            f.write("""#include <stdio.h>
-
-int main() {
-    printf("Hello, World!\\n");
-    return 0;
-}
-""")
-        log.info(f"Wrote {name}.c")
-    elif lang == Language.CXX:
-        log.debug(f"Writing {name}.cxx")
-        with (cwd / f"{name}.cxx").open("w") as f:
-            f.write("""#include <iostream>
-
-int main() {
-    std::cout << "Hello, World!\\n";
-    return 0;
-}
-""")
-        log.info(f"Wrote {name}.cxx")
+    exit_code, message = commands.init(language=language, name=name)
+    if exit_code != 0:
+        log.error(message)
+    raise typer.Exit(exit_code)
 
 
 @cli.command()
