@@ -515,15 +515,7 @@ def run(
 @cli.command()
 def clean():
     """Clean the project."""
-    cwd = Path.cwd()
-    build_dir = cwd / "build"
-    if not build_dir.exists():
-        log.info("Nothing to clean")
-        raise typer.Exit(0)
-
-    log.info("Cleaning build directory")
-    rmtree(build_dir)
-    log.info("Cleaned build directory")
+    commands.clean()
 
 
 @cli.callback(invoke_without_command=True)
