@@ -517,3 +517,146 @@ def test_find_library_platform_unsupported(mocker: MockerFixture) -> None:
 
     assert found is False
     assert lib is None
+
+
+def test_validate_defines_empty_string() -> None:
+    from ezbuild.environment import _validate_defines
+
+    with pytest.raises(Exit):
+        _validate_defines(["DEBUG", ""])
+
+
+def test_validate_defines_with_d_prefix() -> None:
+    from ezbuild.environment import _validate_defines
+
+    with pytest.raises(Exit):
+        _validate_defines(["DEBUG", "-DVERSION"])
+
+
+def test_format_define_simple() -> None:
+    from ezbuild.__main__ import _format_define
+
+    assert _format_define("DEBUG") == "-DDEBUG"
+
+
+def test_format_define_with_value() -> None:
+    from ezbuild.__main__ import _format_define
+
+    assert _format_define("VERSION=1.0") == "-DVERSION=1.0"
+
+
+def test_format_define_with_spaces() -> None:
+    from ezbuild.__main__ import _format_define
+
+    assert _format_define("NAME=John Doe") == '"-DNAME=John Doe"'
+
+
+def test_format_define_complex_expression() -> None:
+    from ezbuild.__main__ import _format_define
+
+    assert _format_define("CONFIG=(A|B)") == "-DCONFIG=(A|B)"
+
+
+def test_program_with_defines() -> None:
+    program = Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+        defines=["DEBUG", "VERSION=1.0"],
+    )
+    assert program.defines == ["DEBUG", "VERSION=1.0"]
+
+
+def test_program_defines_default() -> None:
+    program = Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+    )
+    assert program.defines == []
+
+
+def test_environment_program_method_with_defines() -> None:
+    env = Environment()
+    program = env.Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+        defines=["DEBUG"],
+    )
+    assert isinstance(program, Program)
+    assert program.defines == ["DEBUG"]
+    assert program in env.programs
+
+
+def test_program_defines_with_spaces() -> None:
+    env = Environment()
+    program = env.Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+        defines=["PROJECT_NAME=My Project"],
+    )
+    assert program.defines == ["PROJECT_NAME=My Project"]
+
+
+def test_static_library_with_defines() -> None:
+    lib = StaticLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+        defines=["LIB_BUILD"],
+    )
+    assert lib.defines == ["LIB_BUILD"]
+
+
+def test_shared_library_with_defines() -> None:
+    lib = SharedLibrary(
+        name="mylib",
+        languages=[Language.C],
+        sources=["lib.c"],
+        defines=["SHARED_BUILD"],
+    )
+    assert lib.defines == ["SHARED_BUILD"]
+
+
+def test_defines_multiple_complex_values() -> None:
+    program = Program(
+        name="myapp",
+        languages=[Language.C],
+        sources=["main.c"],
+        defines=[
+            "DEBUG",
+            "VERSION_MAJOR=2",
+            "VERSION_MINOR=1",
+            "NAME=Test App",
+            "CONFIG=(DEBUG|RELEASE)",
+        ],
+    )
+    assert len(program.defines) == 5
+
+
+def test_program_with_empty_define_raises_error(mocker: MockerFixture) -> None:
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    with pytest.raises(Exit):
+        env.Program(
+            name="myapp",
+            languages=[Language.C],
+            sources=["main.c"],
+            defines=["DEBUG", ""],
+        )
+    mock_error.assert_called_once_with("Define cannot be empty string")
+
+
+def test_program_with_d_prefix_raises_error(mocker: MockerFixture) -> None:
+    mock_error = mocker.patch("ezbuild.environment.error")
+    env = Environment()
+    with pytest.raises(Exit):
+        env.Program(
+            name="myapp",
+            languages=[Language.C],
+            sources=["main.c"],
+            defines=["DEBUG", "-DVERSION"],
+        )
+    mock_error.assert_called_once_with("Define '-DVERSION' should not start with '-D'")

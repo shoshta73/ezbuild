@@ -1,4 +1,5 @@
 import json
+import shlex
 import subprocess
 from importlib.metadata import version
 from pathlib import Path
@@ -26,6 +27,12 @@ from ezbuild import (
 )
 
 cli: typer.Typer = typer.Typer()
+
+
+def _format_define(define: str) -> str:
+    if " " in define:
+        return f'"-D{define}"'
+    return f"-D{define}"
 
 
 def version_callback(value: bool) -> None:
@@ -163,6 +170,9 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
+                    for define in target.defines:
+                        compile_flags.append(_format_define(define))
+
                     compile_command.command = " ".join(
                         [
                             build_env["CC"],
@@ -180,6 +190,9 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
+                    for define in target.defines:
+                        compile_flags.append(_format_define(define))
+
                     compile_command.command = " ".join(
                         [
                             build_env["CXX"],
@@ -192,7 +205,7 @@ def build(
                     )
                     log.cxx(f"{compile_command.file}")
 
-                cmd_list = compile_command.command.split()
+                cmd_list = shlex.split(compile_command.command)
                 result = subprocess.run(cmd_list, capture_output=True)
                 if result.returncode != 0:
                     log.error("Compilation failed")
@@ -268,7 +281,6 @@ def build(
 
             int_dir = build_dir / target.name
             utils.fs.create_dir_if_not_exists(int_dir)
-
             local_compile_commands: list[CompileCommand] = []
             for source in target.sources:
                 source_path = cwd / source
@@ -279,10 +291,14 @@ def build(
                 compile_command.output = str(
                     _temp.parent / ((int_dir / source).name + ".o")
                 )
+
                 if source_path.suffix == ".c":
                     compile_flags: list[str] = []
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
+
+                    for define in target.defines:
+                        compile_flags.append(_format_define(define))
 
                     compile_command.command = " ".join(
                         [
@@ -301,6 +317,9 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
+                    for define in target.defines:
+                        compile_flags.append(_format_define(define))
+
                     compile_command.command = " ".join(
                         [
                             build_env["CXX"],
@@ -313,7 +332,7 @@ def build(
                     )
                     log.cxx(f"{compile_command.file}")
 
-                cmd_list = compile_command.command.split()
+                cmd_list = shlex.split(compile_command.command)
                 result = subprocess.run(cmd_list, capture_output=True)
                 if result.returncode != 0:
                     log.error("Compilation failed")
@@ -390,6 +409,9 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
+                    for define in target.defines:
+                        compile_flags.append(_format_define(define))
+
                     compile_command.command = " ".join(
                         [
                             build_env["CC"],
@@ -407,6 +429,9 @@ def build(
                     for sys_dep in target.system_dependencies:
                         compile_flags.extend(system_libs[sys_dep].compile_flags)
 
+                    for define in target.defines:
+                        compile_flags.append(_format_define(define))
+
                     compile_command.command = " ".join(
                         [
                             build_env["CXX"],
@@ -420,7 +445,7 @@ def build(
                     )
                     log.cxx(f"{compile_command.file}")
 
-                cmd_list = compile_command.command.split()
+                cmd_list = shlex.split(compile_command.command)
                 result = subprocess.run(cmd_list, capture_output=True)
                 if result.returncode != 0:
                     log.error("Compilation failed")

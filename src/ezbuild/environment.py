@@ -12,6 +12,16 @@ if TYPE_CHECKING:
     from ezbuild.language import Language
 
 
+def _validate_defines(defines: list[str]) -> None:
+    for define in defines:
+        if not define:
+            error("Define cannot be empty string")
+            raise Exit
+        if define.startswith(("-D", "-d")):
+            error(f"Define '{define}' should not start with '-D'")
+            raise Exit
+
+
 @dataclass
 class SystemLibrary:
     name: str
@@ -26,6 +36,7 @@ class Program:
     sources: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
     system_dependencies: list[str] = field(default_factory=list)
+    defines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -35,6 +46,7 @@ class StaticLibrary:
     sources: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
     system_dependencies: list[str] = field(default_factory=list)
+    defines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -44,6 +56,7 @@ class SharedLibrary:
     sources: list[str] = field(default_factory=list)
     dependencies: list[str] = field(default_factory=list)
     system_dependencies: list[str] = field(default_factory=list)
+    defines: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -69,13 +82,17 @@ class Environment:
         sources: list[str],
         dependencies: None | list[str] = None,
         system_dependencies: None | list[str] = None,
+        defines: None | list[str] = None,
     ) -> Program:
+        defines_list = defines or []
+        _validate_defines(defines_list)
         program = Program(
             name=name,
             languages=languages,
             sources=sources,
             dependencies=dependencies or [],
             system_dependencies=system_dependencies or [],
+            defines=defines_list,
         )
         self.programs.append(program)
         return program
@@ -87,13 +104,17 @@ class Environment:
         sources: list[str],
         dependencies: None | list[str] = None,
         system_dependencies: None | list[str] = None,
+        defines: None | list[str] = None,
     ) -> StaticLibrary:
+        defines_list = defines or []
+        _validate_defines(defines_list)
         static_library = StaticLibrary(
             name=name,
             languages=languages,
             sources=sources,
             dependencies=dependencies or [],
             system_dependencies=system_dependencies or [],
+            defines=defines_list,
         )
         self.static_libraries.append(static_library)
         return static_library
@@ -105,13 +126,17 @@ class Environment:
         sources: list[str],
         dependencies: None | list[str] = None,
         system_dependencies: None | list[str] = None,
+        defines: None | list[str] = None,
     ) -> SharedLibrary:
+        defines_list = defines or []
+        _validate_defines(defines_list)
         shared_library = SharedLibrary(
             name=name,
             languages=languages,
             sources=sources,
             dependencies=dependencies or [],
             system_dependencies=system_dependencies or [],
+            defines=defines_list,
         )
         self.shared_libraries.append(shared_library)
         return shared_library

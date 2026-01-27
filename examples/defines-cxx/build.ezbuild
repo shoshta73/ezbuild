@@ -1,0 +1,13 @@
+env = Environment()
+
+myapp = env.Program(
+    name="defines-example",
+    languages=[Language.CXX],
+    sources=["main.cpp"],
+    defines=[
+        "DEBUG",
+        "VERSION_MAJOR=2",
+        "VERSION_MINOR=0",
+        "FEATURE_ENABLED",
+    ],
+)
