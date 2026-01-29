@@ -39,13 +39,7 @@ jobs:
 
       - name: Build examples
         run: |
-          cd examples
-          for example in *; do
-            cd $example
-            echo "Building $example"
-            uv run ezbuild build
-            cd ..
-          done
+          uv run utils/build-examples.py
 
       - name: Build ezbuild
         run: |
