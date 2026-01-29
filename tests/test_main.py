@@ -1,5 +1,5 @@
 from ezbuild import Language, Program, SharedLibrary, StaticLibrary
-from ezbuild.__main__ import _collect_public_defines
+from ezbuild.commands.build import _collect_public_defines
 
 
 def test_collect_public_defines_no_dependencies() -> None:

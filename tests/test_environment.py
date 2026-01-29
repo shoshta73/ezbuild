@@ -534,25 +534,25 @@ def test_validate_defines_with_d_prefix() -> None:
 
 
 def test_format_define_simple() -> None:
-    from ezbuild.__main__ import _format_define
+    from ezbuild.commands.build import _format_define
 
     assert _format_define("DEBUG") == "-DDEBUG"
 
 
 def test_format_define_with_value() -> None:
-    from ezbuild.__main__ import _format_define
+    from ezbuild.commands.build import _format_define
 
     assert _format_define("VERSION=1.0") == "-DVERSION=1.0"
 
 
 def test_format_define_with_spaces() -> None:
-    from ezbuild.__main__ import _format_define
+    from ezbuild.commands.build import _format_define
 
     assert _format_define("NAME=John Doe") == '"-DNAME=John Doe"'
 
 
 def test_format_define_complex_expression() -> None:
-    from ezbuild.__main__ import _format_define
+    from ezbuild.commands.build import _format_define
 
     assert _format_define("CONFIG=(A|B)") == "-DCONFIG=(A|B)"
 
