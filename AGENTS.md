@@ -107,6 +107,8 @@
 - Use `CliRunner` for CLI testing
 - Use `pytest-mock` with `mocker.patch()` for mocking
 - Use `pytest.raises()` for exception testing
+- Use `tmp_path` fixture for temporary directories
+- Use `runner.isolated_filesystem(temp_dir=tmp_path)` for test isolation
 - Assert exit codes and output
 - Test structure:
   ```python
