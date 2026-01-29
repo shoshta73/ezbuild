@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.1] - 2026-01-29
+
+### Changed
+- Moved `build` and `run` commands to commands submodule
+- Improved GitHub workflows (pypi-publish, test)
+
+### Added
+- Build-examples utility script
+
 ## [0.4.0] - 2026-01-28
 
 ### Added
