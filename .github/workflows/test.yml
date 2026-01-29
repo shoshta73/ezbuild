@@ -20,6 +20,10 @@ jobs:
         with:
           version: 0.9.26
 
+      - name: Create venv
+        run: |
+          uv venv
+
       - name: Install dependencies
         run: |
           uv pip install -r requirements.txt
