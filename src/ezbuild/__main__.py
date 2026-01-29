@@ -1,6 +1,4 @@
-import subprocess
 from importlib.metadata import version
-from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -53,21 +51,10 @@ def run(
     name: Annotated[str, typer.Argument(help="Name of the project to initialize")],
 ) -> None:
     """Run the project."""
-    cwd = Path.cwd()
-    build_dir = cwd / "build"
-    bin_dir = build_dir / "bin"
-
-    if not (bin_dir / name).exists():
-        build(name=name)
-
-    cmd = f"{bin_dir / name}"
-    log.debug(f"Running {cmd}")
-    result = subprocess.run([str(bin_dir / name)])
-
-    if result.returncode != 0:
-        log.error("Running failed")
-        log.debug(f"Error: {result.stderr.decode()}")
-        raise typer.Exit
+    exit_code, message = commands.run(name=name)
+    if exit_code != 0:
+        log.error(message)
+    raise typer.Exit(exit_code)
 
 
 @cli.command()
